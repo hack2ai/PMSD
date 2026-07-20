@@ -1,0 +1,165 @@
+const pool = require("../config/db");
+
+// =======================================
+// Create Payment
+// =======================================
+const createPayment = async (
+    userId,
+    courseId,
+    amount,
+    paymentMethod,
+    paymentStatus,
+    transactionId
+) => {
+
+    const result = await pool.query(
+        `
+        INSERT INTO payments
+        (
+            user_id,
+            course_id,
+            amount,
+            payment_method,
+            payment_status,
+            transaction_id
+        )
+        VALUES
+        (
+            $1,$2,$3,$4,$5,$6
+        )
+        RETURNING *;
+        `,
+        [
+            userId,
+            courseId,
+            amount,
+            paymentMethod,
+            paymentStatus,
+            transactionId
+        ]
+    );
+
+    return result.rows[0];
+
+};
+
+// =======================================
+// Get Payment By ID
+// =======================================
+const getPaymentById = async (id) => {
+
+    const result = await pool.query(
+        `
+        SELECT *
+        FROM payments
+        WHERE id = $1;
+        `,
+        [id]
+    );
+
+    return result.rows[0];
+
+};
+
+// =======================================
+// Get User Payments
+// =======================================
+const getUserPayments = async (userId) => {
+
+    const result = await pool.query(
+        `
+        SELECT
+            p.*,
+            c.title
+        FROM payments p
+        JOIN courses c
+            ON p.course_id = c.id
+        WHERE p.user_id = $1
+        ORDER BY p.paid_at DESC;
+        `,
+        [userId]
+    );
+
+    return result.rows;
+
+};
+
+// =======================================
+// Get All Payments
+// =======================================
+const getAllPayments = async () => {
+
+    const result = await pool.query(
+        `
+        SELECT
+            p.*,
+            u.full_name,
+            u.email,
+            c.title
+        FROM payments p
+        JOIN users u
+            ON p.user_id = u.id
+        JOIN courses c
+            ON p.course_id = c.id
+        ORDER BY p.paid_at DESC;
+        `
+    );
+
+    return result.rows;
+
+};
+
+// =======================================
+// Update Payment Status
+// =======================================
+const updatePaymentStatus = async (
+    id,
+    paymentStatus
+) => {
+
+    const result = await pool.query(
+        `
+        UPDATE payments
+        SET payment_status = $1
+        WHERE id = $2
+        RETURNING *;
+        `,
+        [
+            paymentStatus,
+            id
+        ]
+    );
+
+    return result.rows[0];
+
+};
+
+// =======================================
+// Delete Payment
+// =======================================
+const deletePayment = async (id) => {
+
+    const result = await pool.query(
+        `
+        DELETE FROM payments
+        WHERE id = $1
+        RETURNING *;
+        `,
+        [id]
+    );
+
+    return result.rows[0];
+
+};
+
+// =======================================
+// Export
+// =======================================
+module.exports = {
+    createPayment,
+    getPaymentById,
+    getUserPayments,
+    getAllPayments,
+    updatePaymentStatus,
+    deletePayment
+};
