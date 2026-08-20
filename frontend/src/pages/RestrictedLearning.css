@@ -1,5 +1,6 @@
 .learning-page,
-.player-page {
+.player-page,
+.security-page {
     width: min(1180px, calc(100% - 32px));
     margin: 0 auto;
     padding: 48px 0 72px;
@@ -7,7 +8,8 @@
 }
 
 .learning-hero,
-.player-header {
+.player-header,
+.admin-page-header {
     display: flex;
     justify-content: space-between;
     gap: 24px;
@@ -27,7 +29,8 @@
 }
 
 .learning-hero h1,
-.player-header h1 {
+.player-header h1,
+.admin-page-header h1 {
     font-size: clamp(32px, 5vw, 54px);
     line-height: 1.05;
     margin: 0 0 12px;
@@ -35,7 +38,8 @@
 }
 
 .learning-hero p,
-.player-header p {
+.player-header p,
+.admin-page-header p {
     color: #667085;
     max-width: 680px;
 }
@@ -57,7 +61,8 @@
 .module-list { display: grid; gap: 18px; }
 
 .module-card,
-.player-card {
+.player-card,
+.security-card {
     background: #fff;
     border: 1px solid #e5e7eb;
     border-radius: 20px;
@@ -154,11 +159,52 @@
     font-size: 12px;
 }
 
+.secondary-button,
+.danger-button {
+    border: 1px solid #d0d5dd;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+    background: #fff;
+}
+
+.secondary-button:hover { background: #f8fafc; }
+
+.danger-button {
+    border-color: #fecdca;
+    color: #b42318;
+    background: #fff6f6;
+}
+
+.danger-button:hover { background: #fee4e2; }
+
+.security-banner { margin-bottom: 16px; }
+.security-card { overflow-x: auto; }
+.security-table-wrap { min-width: 900px; }
+.security-table { width: 100%; border-collapse: collapse; }
+.security-table th,
+.security-table td {
+    padding: 15px 18px;
+    text-align: left;
+    border-bottom: 1px solid #eef0f4;
+    vertical-align: middle;
+}
+.security-table th { color: #667085; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
+.security-table td { color: #344054; font-size: 14px; }
+.security-table td > strong,
+.security-table td > span { display: block; }
+.security-table td > span { margin-top: 2px; color: #667085; font-size: 12px; }
+.security-table code { font-size: 11px; }
+
 @media (max-width: 720px) {
     .learning-page,
-    .player-page { width: min(100% - 20px, 1180px); padding-top: 28px; }
+    .player-page,
+    .security-page { width: min(100% - 20px, 1180px); padding-top: 28px; }
     .learning-hero,
     .player-header,
+    .admin-page-header,
     .module-heading,
     .player-footer { flex-direction: column; }
     .course-security,
