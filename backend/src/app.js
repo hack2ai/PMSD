@@ -11,24 +11,25 @@ const uploadRoutes = require("./routes/uploadRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const lectureRoutes = require("./routes/lectureRoutes");
 const telegramRoutes = require("./routes/telegramRoutes");
+const telegramSourceRoutes = require("./routes/telegramSourceRoutes");
 
 const app = express();
-
 app.disable("x-powered-by");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Only explicitly public asset directories are exposed.
-// Private lecture media must live under PRIVATE_MEDIA_ROOT and is never static.
+// Private lecture media is never exposed through static middleware.
 app.use("/uploads/courses", express.static(path.join(process.cwd(), "uploads", "courses")));
 app.use("/uploads/profiles", express.static(path.join(process.cwd(), "uploads", "profiles")));
 app.use("/certificates", express.static(path.join(process.cwd(), "certificates")));
+app.use((_req, res, next) => {
+    res.setHeader("Referrer-Policy", "no-referrer");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    next();
+});
 
-app.get("/", (req, res) => {
-    res.status(200).json({
-        success: true,
-        message: "PMSD Backend Running Successfully"
-    });
+app.get("/", (_req, res) => {
+    res.status(200).json({ success: true, message: "PMSD Backend Running Successfully" });
 });
 
 app.use("/api/auth", authRoutes);
@@ -41,12 +42,13 @@ app.use("/api/uploads", uploadRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/lectures", lectureRoutes);
 app.use("/api/telegram", telegramRoutes);
+app.use("/api/telegram", telegramSourceRoutes);
 
-app.use((req, res) => {
+app.use((_req, res) => {
     res.status(404).json({ success: false, message: "Route not found." });
 });
 
-app.use((err, req, res, next) => {
+app.use((err, _req, res, _next) => {
     console.error("PMSD API error:", err);
     res.status(err.status || 500).json({
         success: false,
