@@ -10,6 +10,7 @@ const certificateRoutes = require("./routes/certificateRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
 const lectureRoutes = require("./routes/lectureRoutes");
+const telegramRoutes = require("./routes/telegramRoutes");
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.use("/api/certificates", certificateRoutes);
 app.use("/api/uploads", uploadRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/lectures", lectureRoutes);
+app.use("/api/telegram", telegramRoutes);
 
 app.use((req, res) => {
     res.status(404).json({ success: false, message: "Route not found." });
