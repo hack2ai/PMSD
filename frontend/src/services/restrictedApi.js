@@ -22,6 +22,15 @@ export const getCourseLectures = (courseId) =>
 export const getLectureAccess = (lectureId) =>
     client.get(`/lectures/${lectureId}/access`);
 
+export const saveLectureProgress = (lectureId, payload) =>
+    client.post(`/lectures/${lectureId}/progress`, payload);
+
+export const getSecuritySessions = () =>
+    client.get("/lectures/security/sessions");
+
+export const revokeSecuritySession = (sessionId) =>
+    client.post(`/lectures/security/sessions/${sessionId}/revoke`);
+
 export const createModule = (courseId, payload) =>
     client.post(`/lectures/course/${courseId}/modules`, payload);
 
