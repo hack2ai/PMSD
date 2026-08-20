@@ -1,18 +1,12 @@
 const fs = require("fs");
-const path = require("path");
 const {
     getLecturesForCourse,
-    getLectureById,
     createModule,
     getModulesForCourse,
     createLecture,
-    createLearningSession,
-    findLearningSession,
-    touchLearningSession,
     writeAuditLog
 } = require("../models/lectureModel");
 const { resolvePrivateMediaPath } = require("../middleware/lectureAccessMiddleware");
-const crypto = require("crypto");
 
 const clientIp = (req) => req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.ip || req.socket?.remoteAddress || null;
 
@@ -79,7 +73,6 @@ const createNewLecture = async (req, res, next) => {
 const getLectureAccess = async (req, res, next) => {
     try {
         const lecture = req.lecture;
-        const streamUrl = `/api/lectures/${lecture.id}/stream?session=${encodeURIComponent(req.learningSessionId)}`;
         res.json({
             success: true,
             lecture: {
@@ -91,7 +84,7 @@ const getLectureAccess = async (req, res, next) => {
                 moduleTitle: lecture.module_title
             },
             sessionId: req.learningSessionId,
-            streamUrl
+            streamUrl: `/api/lectures/${lecture.id}/stream?session=${encodeURIComponent(req.learningSessionId)}`
         });
     } catch (err) {
         next(err);
@@ -100,23 +93,13 @@ const getLectureAccess = async (req, res, next) => {
 
 const streamLecture = async (req, res, next) => {
     try {
-        const sessionId = String(req.query.session || "");
-        if (!crypto.randomUUID || !sessionId) {
-            return res.status(400).json({ success: false, message: "A valid learning session is required." });
-        }
-
-        const session = await findLearningSession(sessionId, req.user.id, req.lecture.id);
-        if (!session) {
-            return res.status(403).json({ success: false, message: "Learning session is invalid or revoked." });
-        }
-
         const filePath = resolvePrivateMediaPath(req.lecture.storage_key);
         const stat = await fs.promises.stat(filePath).catch(() => null);
+
         if (!stat || !stat.isFile()) {
             return res.status(404).json({ success: false, message: "Lecture media is unavailable." });
         }
 
-        await touchLearningSession(sessionId, req.user.id);
         await writeAuditLog({
             userId: req.user.id,
             action: "lecture.stream",
@@ -124,15 +107,14 @@ const streamLecture = async (req, res, next) => {
             resourceId: String(req.lecture.id),
             ipAddress: clientIp(req),
             userAgent: req.get("user-agent"),
-            metadata: { sessionId }
+            metadata: { sessionId: req.learningSessionId }
         });
 
         const range = req.headers.range;
         const contentType = req.lecture.content_type === "video" ? "video/mp4" : "application/octet-stream";
 
         if (!range) {
-            res.status(200);
-            res.set({
+            res.status(200).set({
                 "Content-Type": contentType,
                 "Content-Length": stat.size,
                 "Accept-Ranges": "bytes",
@@ -152,10 +134,9 @@ const streamLecture = async (req, res, next) => {
             return;
         }
 
-        const chunkSize = end - start + 1;
         res.status(206).set({
             "Content-Type": contentType,
-            "Content-Length": chunkSize,
+            "Content-Length": end - start + 1,
             "Content-Range": `bytes ${start}-${end}/${stat.size}`,
             "Accept-Ranges": "bytes",
             "Cache-Control": "private, no-store",
