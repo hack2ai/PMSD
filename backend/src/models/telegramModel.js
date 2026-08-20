@@ -10,7 +10,7 @@ const createTelegramImport = async ({ id, telegramFileId, telegramMessageId, fil
         VALUES ($1,$2,$3,$4,$5,$6,$7)
         RETURNING *
         `,
-        [id, sourceId || null, telegramFileId, telegramMessageId || null, fileName || null, contentType || null, createdBy]
+        [id, sourceId || null, telegramFileId, telegramMessageId || null, fileName || null, contentType || null, createdBy || null]
     );
     return result.rows[0];
 };
@@ -32,4 +32,36 @@ const updateTelegramImport = async (id, fields) => {
     return result.rows[0];
 };
 
-module.exports = { createTelegramImport, updateTelegramImport };
+const findTelegramSourceByChatId = async (chatId) => {
+    const result = await pool.query(
+        `
+        SELECT id, label, chat_id, chat_username, default_module_id, auto_publish
+        FROM telegram_sources
+        WHERE chat_id = $1 AND active = TRUE
+        LIMIT 1
+        `,
+        [String(chatId)]
+    );
+    return result.rows[0] || null;
+};
+
+const findImportByMessage = async (telegramChatId, telegramMessageId) => {
+    const result = await pool.query(
+        `
+        SELECT id, lecture_id, status
+        FROM telegram_imports
+        WHERE source_id IN (SELECT id FROM telegram_sources WHERE chat_id = $1)
+          AND telegram_message_id = $2
+        LIMIT 1
+        `,
+        [String(telegramChatId), String(telegramMessageId)]
+    );
+    return result.rows[0] || null;
+};
+
+module.exports = {
+    createTelegramImport,
+    updateTelegramImport,
+    findTelegramSourceByChatId,
+    findImportByMessage
+};
