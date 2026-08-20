@@ -5,6 +5,7 @@ const verifyToken = require("../middleware/authMiddleware");
 const isAdmin = require("../middleware/adminMiddleware");
 const courseAccess = require("../middleware/courseAccessMiddleware");
 const { verifyLectureAccess } = require("../middleware/lectureAccessMiddleware");
+const streamSession = require("../middleware/streamSessionMiddleware");
 const {
     listCourseLectures,
     listCourseModules,
@@ -21,6 +22,6 @@ router.post("/course/:courseId/modules", verifyToken, isAdmin, createCourseModul
 router.post("/modules/:moduleId/lectures", verifyToken, isAdmin, createNewLecture);
 
 router.get("/:id/access", ...verifyLectureAccess, getLectureAccess);
-router.get("/:id/stream", ...verifyLectureAccess, streamLecture);
+router.get("/:id/stream", ...streamSession, streamLecture);
 
 module.exports = router;
