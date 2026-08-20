@@ -1,4 +1,5 @@
 const fs = require("fs");
+const crypto = require("crypto");
 const {
     getLecturesForCourse,
     createModule,
@@ -6,9 +7,25 @@ const {
     createLecture,
     writeAuditLog
 } = require("../models/lectureModel");
+const {
+    getOrCreateWatermarkId,
+    countActiveSessions,
+    createSecureSession,
+    getProgress,
+    upsertProgress,
+    revokeOldestActiveSession,
+    listActiveSessions,
+    revokeSession
+} = require("../models/learningSecurityModel");
 const { resolvePrivateMediaPath } = require("../middleware/lectureAccessMiddleware");
 
 const clientIp = (req) => req.headers["x-forwarded-for"]?.split(",")[0]?.trim() || req.ip || req.socket?.remoteAddress || null;
+const deviceFingerprint = (req) => crypto.createHash("sha256")
+    .update(`${req.get("user-agent") || ""}|${clientIp(req) || ""}`)
+    .digest("hex");
+
+const makeWatermarkCode = (watermarkId, sessionId) =>
+    `${String(watermarkId).slice(0, 8).toUpperCase()}-${String(sessionId).slice(0, 8).toUpperCase()}`;
 
 const listCourseLectures = async (req, res, next) => {
     try {
@@ -73,6 +90,38 @@ const createNewLecture = async (req, res, next) => {
 const getLectureAccess = async (req, res, next) => {
     try {
         const lecture = req.lecture;
+        const watermark = await getOrCreateWatermarkId(req.user.id);
+        const sessionId = crypto.randomUUID();
+        const fingerprint = deviceFingerprint(req);
+        const activeSessions = await countActiveSessions(req.user.id);
+
+        if (activeSessions >= 2) {
+            await revokeOldestActiveSession(req.user.id);
+        }
+
+        const watermarkCode = makeWatermarkCode(watermark.learning_watermark_id, sessionId);
+        const session = await createSecureSession({
+            id: sessionId,
+            userId: req.user.id,
+            lectureId: lecture.id,
+            ipAddress: clientIp(req),
+            userAgent: req.get("user-agent"),
+            deviceFingerprint: fingerprint,
+            watermarkCode
+        });
+
+        await writeAuditLog({
+            userId: req.user.id,
+            action: "lecture.access",
+            resourceType: "lecture",
+            resourceId: String(lecture.id),
+            ipAddress: clientIp(req),
+            userAgent: req.get("user-agent"),
+            metadata: { sessionId, watermarkCode }
+        });
+
+        const progress = await getProgress(req.user.id, lecture.id);
+
         res.json({
             success: true,
             lecture: {
@@ -83,9 +132,44 @@ const getLectureAccess = async (req, res, next) => {
                 durationSeconds: lecture.duration_seconds,
                 moduleTitle: lecture.module_title
             },
-            sessionId: req.learningSessionId,
-            streamUrl: `/api/lectures/${lecture.id}/stream?session=${encodeURIComponent(req.learningSessionId)}`
+            sessionId: session.id,
+            watermarkCode: session.watermark_code,
+            streamUrl: `/api/lectures/${lecture.id}/stream?session=${encodeURIComponent(session.id)}`,
+            progress
         });
+    } catch (err) {
+        next(err);
+    }
+};
+
+const saveLectureProgress = async (req, res, next) => {
+    try {
+        const progress = await upsertProgress({
+            userId: req.user.id,
+            lectureId: req.params.id,
+            watchedSeconds: req.body.watchedSeconds,
+            lastPositionSeconds: req.body.lastPositionSeconds,
+            completed: req.body.completed
+        });
+        res.json({ success: true, progress });
+    } catch (err) {
+        next(err);
+    }
+};
+
+const listSecuritySessions = async (req, res, next) => {
+    try {
+        res.json({ success: true, sessions: await listActiveSessions() });
+    } catch (err) {
+        next(err);
+    }
+};
+
+const revokeSecuritySession = async (req, res, next) => {
+    try {
+        const revoked = await revokeSession(req.params.sessionId);
+        if (!revoked) return res.status(404).json({ success: false, message: "Session not found." });
+        res.json({ success: true, message: "Session revoked." });
     } catch (err) {
         next(err);
     }
@@ -99,16 +183,6 @@ const streamLecture = async (req, res, next) => {
         if (!stat || !stat.isFile()) {
             return res.status(404).json({ success: false, message: "Lecture media is unavailable." });
         }
-
-        await writeAuditLog({
-            userId: req.user.id,
-            action: "lecture.stream",
-            resourceType: "lecture",
-            resourceId: String(req.lecture.id),
-            ipAddress: clientIp(req),
-            userAgent: req.get("user-agent"),
-            metadata: { sessionId: req.learningSessionId }
-        });
 
         const range = req.headers.range;
         const contentType = req.lecture.content_type === "video" ? "video/mp4" : "application/octet-stream";
@@ -154,5 +228,8 @@ module.exports = {
     createCourseModule,
     createNewLecture,
     getLectureAccess,
+    saveLectureProgress,
+    listSecuritySessions,
+    revokeSecuritySession,
     streamLecture
 };
