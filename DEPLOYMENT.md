@@ -30,14 +30,15 @@ Set these values in the backend deployment environment:
 - `PORT`
 - `DATABASE_URL`
 - `JWT_SECRET` — long random secret; rotate deliberately
-- `JWT_EXPIRES_IN`
+- `JWT_EXPIRES_IN` — use only if your auth controller is configured to honor it
 - `MEDIA_TOKEN_TTL`
 - `PRIVATE_MEDIA_ROOT`
 - `MAX_PRIVATE_MEDIA_BYTES`
-- `FRONTEND_ORIGIN` — exact production frontend origin
+- `FRONTEND_ORIGIN` — one or more exact frontend origins, comma-separated
+- `JSON_BODY_LIMIT` (optional; defaults to `1mb`)
+- `URLENCODED_BODY_LIMIT` (optional; defaults to `1mb`)
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_WEBHOOK_SECRET`
-- `TRUST_PROXY` — enable only when the reverse proxy is configured
 
 The frontend should set `VITE_API_BASE_URL` to the production API base URL.
 
@@ -80,7 +81,7 @@ Students should never receive a raw Telegram file URL or a filesystem path. The 
 login -> enrolled course -> lecture access -> signed media token -> private stream
 ```
 
-Signed media tokens are short-lived and bound to the student, lecture, and learning session.
+Signed media tokens are bound to the student, lecture, and learning session and expire according to `MEDIA_TOKEN_TTL`.
 
 ## 6. Operational checks
 
@@ -97,6 +98,12 @@ npm run lint
 npm run build
 ```
 
+Health check:
+
+```http
+GET /health
+```
+
 Then verify in staging:
 
 1. Student registration and login.
@@ -111,6 +118,8 @@ Then verify in staging:
 10. Telegram webhook imports only authorized source messages.
 11. Auto-publish follows the configured source policy.
 12. Failed Telegram imports clean up partially downloaded media.
+13. `/health` returns HTTP 200.
+14. Production frontend origin is accepted while unrelated origins are rejected by CORS.
 
 ## 7. Production storage
 
