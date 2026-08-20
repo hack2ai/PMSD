@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { getLectureAccess } from "../services/restrictedApi";
+import { getLectureAccess, saveLectureProgress } from "../services/restrictedApi";
 import "./RestrictedLearning.css";
 
 function LecturePlayer() {
     const { lectureId } = useParams();
+    const videoRef = useRef(null);
     const [data, setData] = useState(null);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(true);
@@ -17,19 +18,52 @@ function LecturePlayer() {
                 if (active) setData(response.data);
             })
             .catch((err) => {
-                if (active) {
-                    setError(err.response?.data?.message || "Unable to open this lecture.");
-                }
+                if (active) setError(err.response?.data?.message || "Unable to open this lecture.");
             })
             .finally(() => active && setLoading(false));
 
         return () => { active = false; };
     }, [lectureId]);
 
-    const watermark = useMemo(() => {
-        const session = data?.sessionId || "";
-        return `PMSD • Authorized Session • ${session.slice(0, 8)}`;
-    }, [data?.sessionId]);
+    useEffect(() => {
+        if (!data?.progress || !videoRef.current) return;
+        const position = Number(data.progress.last_position_seconds || 0);
+        if (position > 0) videoRef.current.currentTime = position;
+    }, [data]);
+
+    const persistProgress = async (completed = false) => {
+        const video = videoRef.current;
+        if (!video) return;
+        try {
+            await saveLectureProgress(lectureId, {
+                watchedSeconds: Math.floor(video.currentTime),
+                lastPositionSeconds: Math.floor(video.currentTime),
+                completed,
+            });
+        } catch {
+            // Progress persistence should not interrupt playback.
+        }
+    };
+
+    useEffect(() => {
+        const video = videoRef.current;
+        if (!video) return undefined;
+        const onPause = () => persistProgress(false);
+        const onEnded = () => persistProgress(true);
+        video.addEventListener("pause", onPause);
+        video.addEventListener("ended", onEnded);
+        return () => {
+            video.removeEventListener("pause", onPause);
+            video.removeEventListener("ended", onEnded);
+        };
+    });
+
+    const watermark = useMemo(
+        () => data?.watermarkCode ? `PMSD • Authorized • ${data.watermarkCode}` : "PMSD • Authorized learning session",
+        [data?.watermarkCode]
+    );
+
+    const completion = data?.progress?.completed ? "Completed" : "In progress";
 
     if (loading) return <div className="learning-state">Checking lecture access…</div>;
     if (error) return <div className="learning-state learning-error">{error}</div>;
@@ -50,10 +84,12 @@ function LecturePlayer() {
                 <div className="video-shell">
                     {data.lecture.contentType === "video" ? (
                         <video
+                            ref={videoRef}
                             controls
                             controlsList="nodownload"
                             disablePictureInPicture
                             playsInline
+                            onContextMenu={(event) => event.preventDefault()}
                             src={`${import.meta.env.VITE_API_BASE_URL || "http://localhost:5001/api"}${data.streamUrl}`}
                         />
                     ) : (
@@ -64,7 +100,7 @@ function LecturePlayer() {
                     <div className="watermark" aria-hidden="true">{watermark}</div>
                 </div>
                 <div className="player-footer">
-                    <span>Access is tied to your PMSD account and learning session.</span>
+                    <span>{completion} · Resume is saved automatically.</span>
                     <span>Session {data.sessionId.slice(0, 8)}…</span>
                 </div>
             </section>
