@@ -1,14 +1,15 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "PMSD restricted lecture platform backend",
   "main": "index.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "check": "node --check src/server.js && node --check src/app.js && node --check src/controllers/authController.js && node --check src/controllers/dashboardController.js && node --check src/controllers/lectureController.js && node --check src/controllers/telegramController.js && node --check src/controllers/telegramSourceController.js && node --check src/controllers/telegramWebhookController.js && node --check src/middleware/authMiddleware.js && node --check src/middleware/courseAccessMiddleware.js && node --check src/middleware/lectureAccessMiddleware.js && node --check src/middleware/streamSessionMiddleware.js && node --check src/models/learningSecurityModel.js && node --check src/models/lectureModel.js && node --check src/models/telegramModel.js && node --check src/services/mediaTokenService.js && node --check src/services/telegramService.js"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": ["pmsd", "lms", "telegram", "restricted-learning"],
+  "author": "PMSD",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
