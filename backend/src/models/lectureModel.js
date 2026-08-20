@@ -1,18 +1,25 @@
 const pool = require("../config/db");
 
-const getLecturesForCourse = async (courseId, includeDrafts = false) => {
+const getLecturesForCourse = async (courseId, includeDrafts = false, userId = null) => {
     const statusClause = includeDrafts ? "" : "AND l.status = 'published'";
     const result = await pool.query(
         `
         SELECT l.id, l.module_id, l.title, l.description, l.position,
                l.content_type, l.source_type, l.duration_seconds, l.status,
-               l.available_from, m.title AS module_title, m.position AS module_position
+               l.available_from, m.title AS module_title, m.position AS module_position,
+               COALESCE(lp.watched_seconds, 0) AS watched_seconds,
+               COALESCE(lp.completed, FALSE) AS completed,
+               COALESCE(lp.last_position_seconds, 0) AS last_position_seconds,
+               lp.updated_at AS progress_updated_at
         FROM lectures l
         JOIN course_modules m ON m.id = l.module_id
+        LEFT JOIN lecture_progress lp
+               ON lp.lecture_id = l.id
+              AND lp.user_id = $2
         WHERE m.course_id = $1 ${statusClause}
         ORDER BY m.position ASC, l.position ASC
         `,
-        [courseId]
+        [courseId, userId]
     );
     return result.rows;
 };
