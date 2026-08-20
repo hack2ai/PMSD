@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require("path");
 
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
@@ -15,6 +16,12 @@ const app = express();
 app.disable("x-powered-by");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Only explicitly public asset directories are exposed.
+// Private lecture media must live under PRIVATE_MEDIA_ROOT and is never static.
+app.use("/uploads/courses", express.static(path.join(process.cwd(), "uploads", "courses")));
+app.use("/uploads/profiles", express.static(path.join(process.cwd(), "uploads", "profiles")));
+app.use("/certificates", express.static(path.join(process.cwd(), "certificates")));
 
 app.get("/", (req, res) => {
     res.status(200).json({
