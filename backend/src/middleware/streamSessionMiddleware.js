@@ -1,4 +1,3 @@
-const verifyToken = require("./authMiddleware");
 const { getLectureById, findLearningSession, touchLearningSession } = require("../models/lectureModel");
 const { verifyMediaToken } = require("../services/mediaTokenService");
 
@@ -19,20 +18,20 @@ const requireStreamSession = async (req, res, next) => {
         }
 
         const decoded = verifyMediaToken(mediaToken);
-        if (
-            String(decoded.sub) !== String(req.user.id) ||
+        const userId = Number(decoded.sub);
+        if (!Number.isInteger(userId) || userId < 1 ||
             String(decoded.lectureId) !== String(lecture.id) ||
-            String(decoded.sessionId) !== sessionId
-        ) {
+            String(decoded.sessionId) !== sessionId) {
             return res.status(403).json({ success: false, message: "Media authorization is invalid." });
         }
 
-        const session = await findLearningSession(sessionId, req.user.id, lecture.id);
+        const session = await findLearningSession(sessionId, userId, lecture.id);
         if (!session) {
             return res.status(403).json({ success: false, message: "Learning session is invalid or revoked." });
         }
 
-        await touchLearningSession(sessionId, req.user.id);
+        await touchLearningSession(sessionId, userId);
+        req.user = { id: userId };
         req.lecture = lecture;
         req.learningSessionId = sessionId;
         next();
@@ -44,4 +43,4 @@ const requireStreamSession = async (req, res, next) => {
     }
 };
 
-module.exports = [verifyToken, requireStreamSession];
+module.exports = requireStreamSession;
