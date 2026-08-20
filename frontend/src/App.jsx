@@ -7,6 +7,7 @@ import MyCourses from "./pages/MyCourses";
 import CourseLearning from "./pages/CourseLearning";
 import LecturePlayer from "./pages/LecturePlayer";
 import AdminLectures from "./pages/AdminLectures";
+import AdminSecurity from "./pages/AdminSecurity";
 import { ProtectedRoute, AdminRoute } from "./routes/ProtectedRoute";
 
 function App() {
@@ -25,6 +26,7 @@ function App() {
 
                 <Route element={<AdminRoute />}>
                     <Route path="/admin/lectures" element={<AdminLectures />} />
+                    <Route path="/admin/security" element={<AdminSecurity />} />
                 </Route>
             </Routes>
         </BrowserRouter>
