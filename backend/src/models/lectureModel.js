@@ -19,12 +19,9 @@ const getLecturesForCourse = async (courseId, includeDrafts = false) => {
 
 const getLectureById = async (lectureId) => {
     const result = await pool.query(
-        `
-        SELECT l.*, m.title AS module_title, m.course_id
-        FROM lectures l
-        JOIN course_modules m ON m.id = l.module_id
-        WHERE l.id = $1
-        `,
+        `SELECT l.*, m.title AS module_title, m.course_id
+         FROM lectures l JOIN course_modules m ON m.id = l.module_id
+         WHERE l.id = $1`,
         [lectureId]
     );
     return result.rows[0];
@@ -48,6 +45,14 @@ const getModulesForCourse = async (courseId) => {
     return result.rows;
 };
 
+const getNextLecturePosition = async (moduleId) => {
+    const result = await pool.query(
+        `SELECT COALESCE(MAX(position), 0) + 1 AS next_position FROM lectures WHERE module_id = $1`,
+        [moduleId]
+    );
+    return Number(result.rows[0]?.next_position || 1);
+};
+
 const createLecture = async (payload) => {
     const {
         moduleId, title, description, position, contentType = "video",
@@ -62,11 +67,9 @@ const createLecture = async (payload) => {
             status, available_from, created_by
          ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
          RETURNING *`,
-        [
-            moduleId, title, description || null, position, contentType, sourceType,
-            telegramChatId || null, telegramMessageId || null, storageKey || null,
-            durationSeconds || null, status, availableFrom || null, createdBy || null
-        ]
+        [moduleId, title, description || null, position, contentType, sourceType,
+         telegramChatId || null, telegramMessageId || null, storageKey || null,
+         durationSeconds || null, status, availableFrom || null, createdBy || null]
     );
     return result.rows[0];
 };
@@ -84,8 +87,7 @@ const createLearningSession = async ({ id, userId, lectureId, ipAddress, userAge
 const findLearningSession = async (sessionId, userId, lectureId) => {
     const result = await pool.query(
         `SELECT id FROM learning_sessions
-         WHERE id = $1 AND user_id = $2 AND lecture_id = $3
-           AND revoked_at IS NULL`,
+         WHERE id = $1 AND user_id = $2 AND lecture_id = $3 AND revoked_at IS NULL`,
         [sessionId, userId, lectureId]
     );
     return result.rows[0];
@@ -114,6 +116,7 @@ module.exports = {
     getLectureById,
     createModule,
     getModulesForCourse,
+    getNextLecturePosition,
     createLecture,
     createLearningSession,
     findLearningSession,
