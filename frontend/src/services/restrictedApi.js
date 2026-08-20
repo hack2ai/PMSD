@@ -9,6 +9,8 @@ client.interceptors.request.use((config) => {
     return config;
 });
 
+export const getDashboard = () => client.get("/dashboard");
+export const getMyCourses = () => client.get("/dashboard/my-courses");
 export const getCourseModules = (courseId) => client.get(`/lectures/course/${courseId}/modules`);
 export const getCourseLectures = (courseId) => client.get(`/lectures/course/${courseId}`);
 export const getLectureAccess = (lectureId) => client.get(`/lectures/${lectureId}/access`);
