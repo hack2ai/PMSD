@@ -29,7 +29,14 @@ const makeWatermarkCode = (watermarkId, sessionId) =>
 
 const listCourseLectures = async (req, res, next) => {
     try {
-        res.json({ success: true, lectures: await getLecturesForCourse(req.params.courseId, req.user.role === "admin") });
+        res.json({
+            success: true,
+            lectures: await getLecturesForCourse(
+                req.params.courseId,
+                req.user.role === "admin",
+                req.user.id
+            )
+        });
     } catch (err) { next(err); }
 };
 
@@ -89,7 +96,8 @@ const getLectureAccess = async (req, res, next) => {
             success: true,
             lecture: {
                 id: lecture.id, title: lecture.title, description: lecture.description,
-                contentType: lecture.content_type, durationSeconds: lecture.duration_seconds, moduleTitle: lecture.module_title
+                contentType: lecture.content_type, durationSeconds: lecture.duration_seconds,
+                moduleTitle: lecture.module_title, courseId: lecture.course_id
             },
             sessionId: session.id,
             watermarkCode: session.watermark_code,
