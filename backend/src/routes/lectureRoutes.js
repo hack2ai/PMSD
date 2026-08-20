@@ -12,6 +12,9 @@ const {
     createCourseModule,
     createNewLecture,
     getLectureAccess,
+    saveLectureProgress,
+    listSecuritySessions,
+    revokeSecuritySession,
     streamLecture
 } = require("../controllers/lectureController");
 
@@ -21,7 +24,11 @@ router.get("/course/:courseId/modules", ...courseAccess, listCourseModules);
 router.post("/course/:courseId/modules", verifyToken, isAdmin, createCourseModule);
 router.post("/modules/:moduleId/lectures", verifyToken, isAdmin, createNewLecture);
 
+router.get("/security/sessions", verifyToken, isAdmin, listSecuritySessions);
+router.post("/security/sessions/:sessionId/revoke", verifyToken, isAdmin, revokeSecuritySession);
+
 router.get("/:id/access", ...verifyLectureAccess, getLectureAccess);
+router.post("/:id/progress", verifyToken, saveLectureProgress);
 router.get("/:id/stream", ...streamSession, streamLecture);
 
 module.exports = router;
