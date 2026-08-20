@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 
-const MEDIA_TOKEN_TTL = process.env.MEDIA_TOKEN_TTL || "5m";
+// Long-form lectures may run for hours; this remains much shorter-lived than the login token.
+const MEDIA_TOKEN_TTL = process.env.MEDIA_TOKEN_TTL || "12h";
 
 const signMediaToken = ({ userId, lectureId, sessionId }) => jwt.sign(
     {
@@ -15,9 +16,7 @@ const signMediaToken = ({ userId, lectureId, sessionId }) => jwt.sign(
 
 const verifyMediaToken = (token) => {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (decoded.type !== "lecture-media") {
-        throw new Error("Invalid media token type.");
-    }
+    if (decoded.type !== "lecture-media") throw new Error("Invalid media token type.");
     return decoded;
 };
 
