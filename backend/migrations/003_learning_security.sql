@@ -1,5 +1,7 @@
 -- Learning progress, student watermark identity, and session controls.
 
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
 ALTER TABLE users
     ADD COLUMN IF NOT EXISTS learning_watermark_id UUID;
 
