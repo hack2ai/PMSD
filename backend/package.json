@@ -1,13 +1,19 @@
 {
   "name": "backend",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "version": "2.0.0",
+  "description": "PMSD learning platform backend with authorized lecture access resolution",
+  "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon src/server.js",
+    "db:migrate": "node database/migrate.js"
   },
-  "keywords": [],
+  "keywords": [
+    "pmsd",
+    "lms",
+    "education",
+    "lecture-access"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
