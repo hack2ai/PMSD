@@ -12,10 +12,27 @@ const createModule = async (courseId, title, description, displayOrder = 0) => {
 
 const getModulesByCourseId = async (courseId) => {
     const result = await pool.query(
-        `SELECT id, course_id, title, description, display_order, created_at, updated_at
-         FROM modules
-         WHERE course_id = $1
-         ORDER BY display_order ASC, id ASC`,
+        `SELECT m.id, m.course_id, m.title, m.description, m.display_order,
+                m.created_at, m.updated_at,
+                COALESCE(
+                    json_agg(
+                        json_build_object(
+                            'id', l.id,
+                            'title', l.title,
+                            'description', l.description,
+                            'lecture_type', l.lecture_type,
+                            'duration_seconds', l.duration_seconds,
+                            'display_order', l.display_order,
+                            'status', l.status
+                        ) ORDER BY l.display_order ASC, l.id ASC
+                    ) FILTER (WHERE l.id IS NOT NULL),
+                    '[]'::json
+                ) AS lectures
+         FROM modules m
+         LEFT JOIN lectures l ON l.module_id = m.id AND l.status <> 'ARCHIVED'
+         WHERE m.course_id = $1
+         GROUP BY m.id
+         ORDER BY m.display_order ASC, m.id ASC`,
         [courseId]
     );
     return result.rows;
