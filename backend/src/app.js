@@ -15,6 +15,7 @@ const lectureSourceRoutes = require("./routes/lectureSourceRoutes");
 const accessRoutes = require("./routes/accessRoutes");
 const lectureProgressRoutes = require("./routes/lectureProgressRoutes");
 const auditRoutes = require("./routes/auditRoutes");
+const adminDashboardRoutes = require("./routes/adminDashboardRoutes");
 
 const app = express();
 
@@ -48,6 +49,7 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/certificates", certificateRoutes);
 app.use("/api/uploads", uploadRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/admin", adminDashboardRoutes);
 app.use("/api/modules", moduleRoutes);
 app.use("/api/lectures", lectureRoutes);
 app.use("/api/lecture-sources", lectureSourceRoutes);
