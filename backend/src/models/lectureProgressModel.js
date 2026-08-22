@@ -45,12 +45,49 @@ const getCourseProgress = async (userId, courseId) => {
     );
     const row = result.rows[0];
     const total = row.total_lectures || 0;
+    const completed = row.completed_lectures || 0;
     return {
         totalLectures: total,
-        completedLectures: row.completed_lectures || 0,
+        completedLectures: completed,
         watchedSeconds: row.watched_seconds || 0,
-        percentage: total ? Math.round((row.completed_lectures / total) * 100) : 0
+        percentage: total ? Math.round((completed / total) * 100) : 0
     };
 };
 
-module.exports = { getProgress, upsertProgress, getCourseProgress };
+const getContinueLecture = async (userId, courseId) => {
+    const result = await pool.query(
+        `SELECT
+            l.id,
+            l.title,
+            l.lecture_type,
+            l.status,
+            lp.progress_seconds,
+            lp.last_accessed_at,
+            m.id AS module_id,
+            m.title AS module_title,
+            m.display_order AS module_order,
+            l.display_order AS lecture_order
+         FROM lecture_progress lp
+         JOIN lectures l ON l.id = lp.lecture_id
+         JOIN modules m ON m.id = l.module_id
+         WHERE lp.user_id = $1
+           AND m.course_id = $2
+           AND l.status = 'PUBLISHED'
+           AND lp.completed = FALSE
+         ORDER BY lp.last_accessed_at DESC NULLS LAST,
+                  m.display_order ASC,
+                  l.display_order ASC,
+                  l.id ASC
+         LIMIT 1`,
+        [userId, courseId]
+    );
+
+    return result.rows[0] || null;
+};
+
+module.exports = {
+    getProgress,
+    upsertProgress,
+    getCourseProgress,
+    getContinueLecture
+};
