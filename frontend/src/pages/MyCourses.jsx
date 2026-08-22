@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getMyCourses, getCourseModules } from "../services/courseService";
+import CourseProgressCard from "../components/CourseProgressCard";
 import "./MyCourses.css";
 
 function MyCourses() {
@@ -44,7 +45,13 @@ function MyCourses() {
         }
     };
 
-    if (loading) return <main className="courses-page"><div className="courses-state">Loading your learning workspace...</div></main>;
+    if (loading) {
+        return (
+            <main className="courses-page">
+                <div className="courses-state">Loading your learning workspace...</div>
+            </main>
+        );
+    }
 
     return (
         <main className="courses-page">
@@ -66,44 +73,50 @@ function MyCourses() {
                 </section>
             ) : (
                 <section className="course-list">
-                    {courses.map((course) => (
-                        <article className="course-card" key={course.id}>
-                            <div className="course-card-main">
-                                <div>
-                                    <span className="course-label">ENROLLED COURSE</span>
-                                    <h2>{course.title || course.name || `Course #${course.id}`}</h2>
-                                    <p>{course.description || "Explore the modules and continue learning."}</p>
-                                </div>
-                                <button onClick={() => toggleCourse(course.id)}>
-                                    {expandedCourse === course.id ? "Hide modules" : "View modules"}
-                                </button>
-                            </div>
+                    {courses.map((course) => {
+                        const courseModules = modules[course.id] || [];
 
-                            {expandedCourse === course.id && (
-                                <div className="module-list">
-                                    {(modules[course.id] || []).map((module) => (
-                                        <div className="module-row" key={module.id}>
-                                            <div>
-                                                <span>MODULE {module.display_order + 1}</span>
-                                                <h3>{module.title}</h3>
-                                                {module.description && <p>{module.description}</p>}
-                                            </div>
-                                            <div className="lecture-links">
-                                                {(module.lectures || []).map((lecture) => (
-                                                    <Link key={lecture.id} to={`/lectures/${lecture.id}`}>
-                                                        {lecture.title}
-                                                    </Link>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ))}
-                                    {!modules[course.id]?.length && (
-                                        <p className="empty-modules">No modules have been published for this course yet.</p>
-                                    )}
+                        return (
+                            <article className="course-card" key={course.id}>
+                                <div className="course-card-main">
+                                    <div>
+                                        <span className="course-label">ENROLLED COURSE</span>
+                                        <h2>{course.title || course.name || `Course #${course.id}`}</h2>
+                                        <p>{course.description || "Explore the modules and continue learning."}</p>
+                                    </div>
+                                    <button onClick={() => toggleCourse(course.id)}>
+                                        {expandedCourse === course.id ? "Hide modules" : "View modules"}
+                                    </button>
                                 </div>
-                            )}
-                        </article>
-                    ))}
+
+                                <CourseProgressCard course={course} modules={courseModules} />
+
+                                {expandedCourse === course.id && (
+                                    <div className="module-list">
+                                        {courseModules.map((module) => (
+                                            <div className="module-row" key={module.id}>
+                                                <div>
+                                                    <span>MODULE {(module.display_order ?? 0) + 1}</span>
+                                                    <h3>{module.title}</h3>
+                                                    {module.description && <p>{module.description}</p>}
+                                                </div>
+                                                <div className="lecture-links">
+                                                    {(module.lectures || []).map((lecture) => (
+                                                        <Link key={lecture.id} to={`/lectures/${lecture.id}`}>
+                                                            {lecture.title}
+                                                        </Link>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {!courseModules.length && (
+                                            <p className="empty-modules">Open “View modules” after content is published for this course.</p>
+                                        )}
+                                    </div>
+                                )}
+                            </article>
+                        );
+                    })}
                 </section>
             )}
         </main>
