@@ -14,6 +14,7 @@ const lectureRoutes = require("./routes/lectureRoutes");
 const lectureSourceRoutes = require("./routes/lectureSourceRoutes");
 const accessRoutes = require("./routes/accessRoutes");
 const lectureProgressRoutes = require("./routes/lectureProgressRoutes");
+const auditRoutes = require("./routes/auditRoutes");
 
 const app = express();
 
@@ -52,6 +53,7 @@ app.use("/api/lectures", lectureRoutes);
 app.use("/api/lecture-sources", lectureSourceRoutes);
 app.use("/api/access", accessRoutes);
 app.use("/api/progress", lectureProgressRoutes);
+app.use("/api/audit", auditRoutes);
 
 app.use((req, res) => {
     res.status(404).json({
