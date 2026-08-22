@@ -1,6 +1,9 @@
 const lectureModel = require("../models/lectureModel");
 const moduleModel = require("../models/moduleModel");
 
+const ALLOWED_TYPES = new Set(["VIDEO", "PDF", "LIVE", "EXTERNAL", "UPLOADED"]);
+const ALLOWED_STATUSES = new Set(["DRAFT", "PUBLISHED", "ARCHIVED", "UNAVAILABLE"]);
+
 const createLecture = async (req, res) => {
     try {
         const { moduleId } = req.params;
@@ -10,20 +13,29 @@ const createLecture = async (req, res) => {
             return res.status(400).json({ success: false, message: "Lecture title is required." });
         }
 
+        const lectureType = lecture_type || "EXTERNAL";
+        const lectureStatus = status || "DRAFT";
+
+        if (!ALLOWED_TYPES.has(lectureType)) {
+            return res.status(400).json({ success: false, message: "Invalid lecture type." });
+        }
+        if (!ALLOWED_STATUSES.has(lectureStatus)) {
+            return res.status(400).json({ success: false, message: "Invalid lecture status." });
+        }
+
         const module = await moduleModel.getModuleById(moduleId);
         if (!module) {
             return res.status(404).json({ success: false, message: "Module not found." });
         }
 
-        const lecture = await lectureModel.createLecture(
-            moduleId,
-            title.trim(),
+        const lecture = await lectureModel.createLecture(moduleId, {
+            title: title.trim(),
             description,
-            lecture_type || "EXTERNAL",
-            Number.isInteger(duration_seconds) ? duration_seconds : null,
-            Number.isInteger(display_order) ? display_order : 0,
-            status || "DRAFT"
-        );
+            lectureType,
+            durationSeconds: Number.isInteger(duration_seconds) && duration_seconds >= 0 ? duration_seconds : null,
+            displayOrder: Number.isInteger(display_order) && display_order >= 0 ? display_order : 0,
+            status: lectureStatus
+        });
 
         return res.status(201).json({ success: true, message: "Lecture created successfully.", lecture });
     } catch (error) {
@@ -72,15 +84,28 @@ const updateLecture = async (req, res) => {
             return res.status(400).json({ success: false, message: "Lecture title is required." });
         }
 
-        const lecture = await lectureModel.updateLecture(
-            req.params.lectureId,
-            title.trim(),
+        const lectureType = lecture_type || existing.lecture_type;
+        const lectureStatus = status || existing.status;
+
+        if (!ALLOWED_TYPES.has(lectureType)) {
+            return res.status(400).json({ success: false, message: "Invalid lecture type." });
+        }
+        if (!ALLOWED_STATUSES.has(lectureStatus)) {
+            return res.status(400).json({ success: false, message: "Invalid lecture status." });
+        }
+
+        const lecture = await lectureModel.updateLecture(req.params.lectureId, {
+            title: title.trim(),
             description,
-            lecture_type || existing.lecture_type,
-            Number.isInteger(duration_seconds) ? duration_seconds : existing.duration_seconds,
-            Number.isInteger(display_order) ? display_order : existing.display_order,
-            status || existing.status
-        );
+            lectureType,
+            durationSeconds: Number.isInteger(duration_seconds) && duration_seconds >= 0
+                ? duration_seconds
+                : existing.duration_seconds,
+            displayOrder: Number.isInteger(display_order) && display_order >= 0
+                ? display_order
+                : existing.display_order,
+            status: lectureStatus
+        });
 
         return res.status(200).json({ success: true, message: "Lecture updated successfully.", lecture });
     } catch (error) {
