@@ -23,4 +23,9 @@ export const deactivateLectureSource = async (sourceId) => {
     return data;
 };
 
+export const checkLectureSourceHealth = async (sourceId) => {
+    const { data } = await apiClient.post(`/source-health/sources/${sourceId}/check`);
+    return data;
+};
+
 export default apiClient;
