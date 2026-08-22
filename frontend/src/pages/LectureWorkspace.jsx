@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { FiArrowLeft, FiBookOpen, FiCheckCircle, FiExternalLink, FiLoader, FiLock } from "react-icons/fi";
+import { FiArrowLeft, FiBookOpen, FiCheckCircle, FiLoader, FiLock } from "react-icons/fi";
 import { getLecture, requestLectureAccess } from "../services/lectureAccessService";
 import { getLectureProgress, saveLectureProgress } from "../services/progressService";
+import LectureContentViewer from "../components/LectureContentViewer";
 import "./LectureWorkspace.css";
 
 function LectureWorkspace() {
@@ -102,11 +103,7 @@ function LectureWorkspace() {
                         <p>{lecture?.description || "Continue your learning journey with this lecture."}</p>
                     </div>
 
-                    <div className="lecture-content-placeholder">
-                        <FiBookOpen size={34} />
-                        <h2>Lecture content</h2>
-                        <p>Access is resolved securely through PMSD before the approved lecture destination is opened.</p>
-                    </div>
+                    <LectureContentViewer lecture={lecture} access={access} />
 
                     <div className="progress-card">
                         <div className="progress-heading">
@@ -143,14 +140,9 @@ function LectureWorkspace() {
                         </button>
                     ) : (
                         <div className="access-result">
-                            <FiCheckCircle className="success-icon" />
+                            <FiCheckCircle className={access.success ? "success-icon" : "error-icon"} />
                             <strong>{access.success ? "Access evaluated" : "Access unavailable"}</strong>
-                            <span>{access.code || access.message || "See the access result below."}</span>
-                            {access.source?.url && (
-                                <a href={access.source.url} target="_blank" rel="noreferrer" className="open-lecture">
-                                    Open Lecture <FiExternalLink />
-                                </a>
-                            )}
+                            <span>{access.code || access.message || "See the content area for details."}</span>
                         </div>
                     )}
                 </aside>
