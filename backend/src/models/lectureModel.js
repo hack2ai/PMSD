@@ -1,14 +1,21 @@
 const pool = require("../config/db");
 
 const createLecture = async (moduleId, data) => {
-    const { title, description, lectureType = "EXTERNAL", durationSeconds = null, displayOrder = 0, status = "DRAFT" } = data;
+    const {
+        title,
+        description = null,
+        lectureType = "EXTERNAL",
+        durationSeconds = null,
+        displayOrder = 0,
+        status = "DRAFT"
+    } = data;
 
     const result = await pool.query(
         `INSERT INTO lectures
             (module_id, title, description, lecture_type, duration_seconds, display_order, status)
          VALUES ($1, $2, $3, $4, $5, $6, $7)
          RETURNING *`,
-        [moduleId, title, description || null, lectureType, durationSeconds, displayOrder, status]
+        [moduleId, title, description, lectureType, durationSeconds, displayOrder, status]
     );
 
     return result.rows[0];
@@ -37,7 +44,14 @@ const getLectureById = async (lectureId) => {
 };
 
 const updateLecture = async (lectureId, data) => {
-    const { title, description, lectureType, durationSeconds, displayOrder, status } = data;
+    const {
+        title,
+        description,
+        lectureType,
+        durationSeconds,
+        displayOrder,
+        status
+    } = data;
 
     const result = await pool.query(
         `UPDATE lectures
