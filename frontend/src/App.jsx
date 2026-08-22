@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import MyCourses from "./pages/MyCourses";
 import LectureWorkspace from "./pages/LectureWorkspace";
 import SourceManagement from "./pages/SourceManagement";
+import RoleGuard from "./auth/RoleGuard";
 
 function App() {
     return (
@@ -16,7 +17,14 @@ function App() {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/my-courses" element={<MyCourses />} />
                 <Route path="/lectures/:lectureId" element={<LectureWorkspace />} />
-                <Route path="/lectures/:lectureId/sources" element={<SourceManagement />} />
+                <Route
+                    path="/lectures/:lectureId/sources"
+                    element={
+                        <RoleGuard allowedRoles={["admin", "instructor"]}>
+                            <SourceManagement />
+                        </RoleGuard>
+                    }
+                />
             </Routes>
         </BrowserRouter>
     );
