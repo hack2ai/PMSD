@@ -51,6 +51,20 @@ const recordDenied = async ({ lecture, user, reason, ipHash, userAgent }) => {
     });
 };
 
+const selectSource = (sources) => {
+    const eligible = sources.filter((source) => {
+        if (isExpired(source.expires_at) || !source.is_active) return false;
+        return source.status === "AVAILABLE" || source.status === "REQUIRES_AUTH";
+    });
+
+    // lectureSourceModel returns sources ordered by priority ASC, id ASC.
+    // Respect that order; the first eligible source wins.
+    const source = eligible[0] || null;
+    const sourceIndex = source ? eligible.findIndex((item) => item.id === source.id) : -1;
+
+    return { source, sourceIndex, eligible };
+};
+
 const resolveLectureAccess = async ({ lectureId, user, ip, userAgent }) => {
     const ipHash = hashIp(ip);
     const lecture = await lectureModel.getLectureById(lectureId);
@@ -78,13 +92,7 @@ const resolveLectureAccess = async ({ lectureId, user, ip, userAgent }) => {
     if (!privileged) {
         const enrolled = await isEnrolled(user.id, lecture.course_id);
         if (!enrolled) {
-            await recordDenied({
-                lecture,
-                user,
-                reason: "NOT_ENROLLED",
-                ipHash,
-                userAgent
-            });
+            await recordDenied({ lecture, user, reason: "NOT_ENROLLED", ipHash, userAgent });
             return {
                 statusCode: 403,
                 body: {
@@ -97,13 +105,7 @@ const resolveLectureAccess = async ({ lectureId, user, ip, userAgent }) => {
     }
 
     if (lecture.status !== "PUBLISHED" && !privileged) {
-        await recordDenied({
-            lecture,
-            user,
-            reason: "LECTURE_NOT_PUBLISHED",
-            ipHash,
-            userAgent
-        });
+        await recordDenied({ lecture, user, reason: "LECTURE_NOT_PUBLISHED", ipHash, userAgent });
         return {
             statusCode: 403,
             body: {
@@ -115,13 +117,7 @@ const resolveLectureAccess = async ({ lectureId, user, ip, userAgent }) => {
     }
 
     const sources = await lectureSourceModel.getSourcesByLectureId(lectureId, false);
-    const candidates = sources.filter((source) => {
-        if (isExpired(source.expires_at) || !source.is_active) return false;
-        return source.status === "AVAILABLE" || source.status === "REQUIRES_AUTH";
-    });
-
-    const source = candidates.find((item) => item.status === "AVAILABLE")
-        || candidates.find((item) => item.status === "REQUIRES_AUTH");
+    const { source, sourceIndex, eligible } = selectSource(sources);
 
     if (!source) {
         await accessAttemptModel.createAccessAttempt({
@@ -153,13 +149,16 @@ const resolveLectureAccess = async ({ lectureId, user, ip, userAgent }) => {
         };
     }
 
+    const fallbackUsed = sourceIndex > 0;
+    const selectionReason = fallbackUsed ? "APPROVED_SOURCE_FALLBACK_SELECTED" : "APPROVED_SOURCE_SELECTED";
+
     if (source.status === "REQUIRES_AUTH" || source.requires_auth) {
         await accessAttemptModel.createAccessAttempt({
             lectureId,
             userId: user.id,
             sourceId: source.id,
             status: "REQUIRES_AUTH",
-            reason: "AUTHORIZED_SOURCE_REQUIRES_AUTH",
+            reason: selectionReason,
             ipHash,
             userAgent
         });
@@ -171,8 +170,13 @@ const resolveLectureAccess = async ({ lectureId, user, ip, userAgent }) => {
             lectureId: lecture.id,
             sourceId: source.id,
             outcome: "REQUIRES_AUTH",
-            reason: "AUTHORIZED_SOURCE_REQUIRES_AUTH",
-            metadata: { sourceType: source.source_type },
+            reason: selectionReason,
+            metadata: {
+                sourceType: source.source_type,
+                priority: source.priority,
+                fallbackUsed,
+                eligibleSourceCount: eligible.length
+            },
             ipHash,
             userAgent
         });
@@ -197,7 +201,7 @@ const resolveLectureAccess = async ({ lectureId, user, ip, userAgent }) => {
         userId: user.id,
         sourceId: source.id,
         status: "ALLOWED",
-        reason: "APPROVED_SOURCE_SELECTED",
+        reason: selectionReason,
         ipHash,
         userAgent
     });
@@ -209,10 +213,12 @@ const resolveLectureAccess = async ({ lectureId, user, ip, userAgent }) => {
         lectureId: lecture.id,
         sourceId: source.id,
         outcome: "ALLOWED",
-        reason: "APPROVED_SOURCE_SELECTED",
+        reason: selectionReason,
         metadata: {
             sourceType: source.source_type,
-            priority: source.priority
+            priority: source.priority,
+            fallbackUsed,
+            eligibleSourceCount: eligible.length
         },
         ipHash,
         userAgent
