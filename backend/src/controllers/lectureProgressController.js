@@ -15,10 +15,7 @@ const ensureEnrollment = async (user, courseId) => {
 const getLectureProgress = async (req, res) => {
     try {
         const lecture = await lectureModel.getLectureById(req.params.lectureId);
-        if (!lecture) {
-            return res.status(404).json({ success: false, message: "Lecture not found." });
-        }
-
+        if (!lecture) return res.status(404).json({ success: false, message: "Lecture not found." });
         if (!(await ensureEnrollment(req.user, lecture.course_id))) {
             return res.status(403).json({ success: false, message: "You are not enrolled in this course." });
         }
@@ -42,28 +39,18 @@ const getLectureProgress = async (req, res) => {
 const updateLectureProgress = async (req, res) => {
     try {
         const lecture = await lectureModel.getLectureById(req.params.lectureId);
-        if (!lecture) {
-            return res.status(404).json({ success: false, message: "Lecture not found." });
-        }
-
+        if (!lecture) return res.status(404).json({ success: false, message: "Lecture not found." });
         if (!(await ensureEnrollment(req.user, lecture.course_id))) {
             return res.status(403).json({ success: false, message: "You are not enrolled in this course." });
         }
 
         const seconds = Number(req.body.progress_seconds);
         const completed = Boolean(req.body.completed);
-
-        if (!Number.isFinite(seconds) || seconds < 0 || !Number.isInteger(seconds)) {
+        if (!Number.isInteger(seconds) || seconds < 0) {
             return res.status(400).json({ success: false, message: "progress_seconds must be a non-negative integer." });
         }
 
-        const progress = await lectureProgressModel.upsertProgress(
-            req.user.id,
-            lecture.id,
-            seconds,
-            completed
-        );
-
+        const progress = await lectureProgressModel.upsertProgress(req.user.id, lecture.id, seconds, completed);
         return res.status(200).json({ success: true, message: "Lecture progress saved.", progress });
     } catch (error) {
         console.error("updateLectureProgress error:", error);
@@ -77,12 +64,16 @@ const getCourseProgress = async (req, res) => {
             return res.status(403).json({ success: false, message: "You are not enrolled in this course." });
         }
 
-        const progress = await lectureProgressModel.getCourseProgress(
-            req.user.id,
-            req.params.courseId
-        );
+        const progress = await lectureProgressModel.getCourseProgress(req.user.id, req.params.courseId);
+        const continueLecture = await lectureProgressModel.getContinueLecture(req.user.id, req.params.courseId);
 
-        return res.status(200).json({ success: true, progress });
+        return res.status(200).json({
+            success: true,
+            progress: {
+                ...progress,
+                continueLecture
+            }
+        });
     } catch (error) {
         console.error("getCourseProgress error:", error);
         return res.status(500).json({ success: false, message: "Unable to load course progress." });
