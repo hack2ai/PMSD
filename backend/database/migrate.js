@@ -5,8 +5,12 @@ const path = require("path");
 const { Pool } = require("pg");
 
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: process.env.NODE_ENV === "production"
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    ssl: process.env.DB_SSL === "true"
         ? { rejectUnauthorized: false }
         : false
 });
@@ -39,22 +43,18 @@ async function run() {
 
         for (const filename of files) {
             if (applied.has(filename)) {
-                console.log(`✓ Already applied: ${filename}`);
+                console.log(`Already applied: ${filename}`);
                 continue;
             }
 
-            const sql = fs.readFileSync(
-                path.join(MIGRATIONS_DIR, filename),
-                "utf8"
-            );
+            const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, filename), "utf8");
+            console.log(`Applying: ${filename}`);
 
-            console.log(`→ Applying: ${filename}`);
             await client.query(sql);
             await client.query(
                 "INSERT INTO schema_migrations (filename) VALUES ($1)",
                 [filename]
             );
-            console.log(`✓ Applied: ${filename}`);
         }
 
         await client.query("COMMIT");
