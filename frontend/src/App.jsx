@@ -2,7 +2,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import Dashboard from "./pages/Dashboard";
+import DashboardRouter from "./pages/DashboardRouter";
 import MyCourses from "./pages/MyCourses";
 import LectureWorkspace from "./pages/LectureWorkspace";
 import SourceManagement from "./pages/SourceManagement";
@@ -15,7 +15,7 @@ function App() {
             <Routes>
                 <Route path="/" element={<Login />} />
                 <Route path="/register" element={<Register />} />
-                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/dashboard" element={<DashboardRouter />} />
                 <Route path="/my-courses" element={<MyCourses />} />
                 <Route path="/lectures/:lectureId" element={<LectureWorkspace />} />
                 <Route
@@ -26,10 +26,7 @@ function App() {
                         </RoleGuard>
                     }
                 />
-                <Route
-                    path="/admin/security-audit"
-                    element={<SecurityAudit />}
-                />
+                <Route path="/admin/security-audit" element={<SecurityAudit />} />
             </Routes>
         </BrowserRouter>
     );
