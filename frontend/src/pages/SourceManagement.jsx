@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { FiCheckCircle, FiPlus, FiSlash, FiTrash2 } from "react-icons/fi";
+import { FiActivity, FiCheckCircle, FiPlus, FiSlash, FiTrash2 } from "react-icons/fi";
 import { useParams } from "react-router-dom";
 import {
+    checkLectureSourceHealth,
     createLectureSource,
     deactivateLectureSource,
     getLectureSources,
@@ -30,6 +31,7 @@ function SourceManagement() {
     });
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [checking, setChecking] = useState({});
     const [error, setError] = useState("");
     const [notice, setNotice] = useState("");
 
@@ -97,6 +99,23 @@ function SourceManagement() {
             await loadSources();
         } catch (err) {
             setError(err.response?.data?.message || "Unable to update source status.");
+        }
+    };
+
+    const checkHealth = async (sourceId) => {
+        setChecking((current) => ({ ...current, [sourceId]: true }));
+        setError("");
+        setNotice("");
+
+        try {
+            const result = await checkLectureSourceHealth(sourceId);
+            const health = result.health;
+            setNotice(`Health check: ${health.status}${health.httpStatus ? ` (${health.httpStatus})` : ""}.`);
+            await loadSources();
+        } catch (err) {
+            setError(err.response?.data?.message || "Unable to check source health.");
+        } finally {
+            setChecking((current) => ({ ...current, [sourceId]: false }));
         }
     };
 
@@ -178,9 +197,17 @@ function SourceManagement() {
                                             <span className={`status status-${String(source.status || "UNKNOWN").toLowerCase()}`}>{source.status}</span>
                                         </div>
                                         <p>{source.source_type} · Priority {source.priority}</p>
-                                        <small>{source.requires_auth ? "Institutional authentication required" : "No source authentication flag"}</small>
+                                        <small>
+                                            {source.requires_auth ? "Institutional authentication required" : "No source authentication flag"}
+                                            {source.last_checked_at ? ` · Checked ${new Date(source.last_checked_at).toLocaleString()}` : " · Not checked yet"}
+                                        </small>
                                     </div>
                                     <div className="source-actions">
+                                        {source.is_active && (
+                                            <button onClick={() => checkHealth(source.id)} disabled={checking[source.id]} title="Check source health">
+                                                <FiActivity /> {checking[source.id] ? "Checking" : "Health"}
+                                            </button>
+                                        )}
                                         {source.status !== "AVAILABLE" && source.is_active && (
                                             <button onClick={() => setStatus(source.id, "AVAILABLE")} title="Mark available"><FiCheckCircle /></button>
                                         )}
