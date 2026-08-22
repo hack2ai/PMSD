@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import MyCourses from "./pages/MyCourses";
 import LectureWorkspace from "./pages/LectureWorkspace";
 import SourceManagement from "./pages/SourceManagement";
+import SecurityAudit from "./pages/SecurityAudit";
 import RoleGuard from "./auth/RoleGuard";
 
 function App() {
@@ -24,6 +25,10 @@ function App() {
                             <SourceManagement />
                         </RoleGuard>
                     }
+                />
+                <Route
+                    path="/admin/security-audit"
+                    element={<SecurityAudit />}
                 />
             </Routes>
         </BrowserRouter>
