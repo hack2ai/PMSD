@@ -3,6 +3,7 @@ const path = require("path");
 const cors = require("cors");
 const helmet = require("helmet");
 const requestContext = require("./middleware/requestContext");
+const requestLogger = require("./middleware/requestLogger");
 
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
@@ -28,6 +29,7 @@ const app = express();
 
 app.disable("x-powered-by");
 app.use(requestContext);
+app.use(requestLogger);
 app.use(helmet());
 app.use(cors({
     origin(origin, callback) {
