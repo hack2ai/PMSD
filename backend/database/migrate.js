@@ -16,12 +16,15 @@ const pool = new Pool({
 });
 
 const MIGRATIONS_DIR = path.join(__dirname, "migrations");
+const MIGRATION_LOCK_ID = 82419631;
+const MIGRATION_FILENAME_PATTERN = /^\d{3}_[a-z0-9][a-z0-9_-]*\.sql$/;
 
 async function run() {
     const client = await pool.connect();
 
     try {
         await client.query("BEGIN");
+        await client.query("SELECT pg_advisory_xact_lock($1)", [MIGRATION_LOCK_ID]);
 
         await client.query(`
             CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -34,6 +37,12 @@ async function run() {
         const files = fs.readdirSync(MIGRATIONS_DIR)
             .filter((file) => file.endsWith(".sql"))
             .sort();
+
+        for (const filename of files) {
+            if (!MIGRATION_FILENAME_PATTERN.test(filename)) {
+                throw new Error(`Invalid migration filename: ${filename}`);
+            }
+        }
 
         const appliedResult = await client.query(
             "SELECT filename FROM schema_migrations ORDER BY filename"
@@ -48,8 +57,11 @@ async function run() {
             }
 
             const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, filename), "utf8");
-            console.log(`Applying: ${filename}`);
+            if (!sql.trim()) {
+                throw new Error(`Migration is empty: ${filename}`);
+            }
 
+            console.log(`Applying: ${filename}`);
             await client.query(sql);
             await client.query(
                 "INSERT INTO schema_migrations (filename) VALUES ($1)",
