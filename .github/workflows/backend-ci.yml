@@ -40,3 +40,6 @@ jobs:
 
       - name: Payment webhook signature tests
         run: node test/paymentWebhook.test.js
+
+      - name: Request context tests
+        run: node test/requestContext.test.js
