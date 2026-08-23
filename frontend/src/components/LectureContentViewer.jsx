@@ -24,12 +24,15 @@ function LectureContentViewer({ lecture, access }) {
         );
     }
 
-    if (access.access === "REQUIRES_AUTH") {
+    if (access.access !== "ALLOWED") {
         return (
             <div className="content-state">
                 <FiLock size={30} />
-                <h2>Institutional authentication required</h2>
-                <p>{access.message || "Open the approved source using your authorized institutional session."}</p>
+                <h2>Lecture access not granted</h2>
+                <p>
+                    {access.message ||
+                        "PMSD has not granted permission to render this lecture source."}
+                </p>
             </div>
         );
     }
@@ -40,7 +43,7 @@ function LectureContentViewer({ lecture, access }) {
             <div className="content-state content-error">
                 <FiLock size={30} />
                 <h2>No destination returned</h2>
-                <p>The source was selected, but no destination was provided.</p>
+                <p>The source was approved, but no destination was provided.</p>
             </div>
         );
     }
@@ -87,7 +90,10 @@ function LectureContentViewer({ lecture, access }) {
         <div className="content-state">
             <FiPlayCircle size={30} />
             <h2>Approved external lecture</h2>
-            <p>The access engine approved this source. Open it in a separate tab to preserve the source's own authentication/session behavior.</p>
+            <p>
+                The access engine approved this source. Open it in a separate tab to
+                preserve the source's own authentication/session behavior.
+            </p>
             <a href={url} target="_blank" rel="noreferrer" className="open-lecture">
                 Open Lecture <FiExternalLink />
             </a>
