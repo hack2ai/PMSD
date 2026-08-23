@@ -23,10 +23,12 @@ const createLecture = async (moduleId, data) => {
 
 const getLecturesByModuleId = async (moduleId) => {
     const result = await pool.query(
-        `SELECT *
-         FROM lectures
-         WHERE module_id = $1
-         ORDER BY display_order ASC, id ASC`,
+        `SELECT l.*, c.price AS course_price
+         FROM lectures l
+         JOIN modules m ON m.id = l.module_id
+         JOIN courses c ON c.id = m.course_id
+         WHERE l.module_id = $1
+         ORDER BY l.display_order ASC, l.id ASC`,
         [moduleId]
     );
     return result.rows;
@@ -34,9 +36,10 @@ const getLecturesByModuleId = async (moduleId) => {
 
 const getLectureById = async (lectureId) => {
     const result = await pool.query(
-        `SELECT l.*, m.title AS module_title, m.course_id
+        `SELECT l.*, m.title AS module_title, m.course_id, c.price AS course_price
          FROM lectures l
          JOIN modules m ON m.id = l.module_id
+         JOIN courses c ON c.id = m.course_id
          WHERE l.id = $1`,
         [lectureId]
     );
