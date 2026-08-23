@@ -1,5 +1,7 @@
 const express = require("express");
 const path = require("path");
+const cors = require("cors");
+const helmet = require("helmet");
 
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
@@ -17,11 +19,27 @@ const accessRoutes = require("./routes/accessRoutes");
 const lectureProgressRoutes = require("./routes/lectureProgressRoutes");
 const auditRoutes = require("./routes/auditRoutes");
 const adminDashboardRoutes = require("./routes/adminDashboardRoutes");
+const { validateEnv } = require("./config/env");
 
+const config = validateEnv();
 const app = express();
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.disable("x-powered-by");
+app.use(helmet());
+app.use(cors({
+    origin(origin, callback) {
+        if (!origin || config.corsOrigins.includes(origin)) {
+            return callback(null, true);
+        }
+        return callback(new Error("CORS origin not allowed."));
+    },
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: false
+}));
+
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 app.use("/certificates", express.static(path.join(__dirname, "../certificates")));
@@ -67,7 +85,7 @@ app.use((req, res) => {
 });
 
 app.use((err, req, res, next) => {
-    console.error("Unhandled error:", err);
+    console.error("Unhandled error:", err.message || err);
     res.status(err.status || 500).json({
         success: false,
         message: err.message || "Internal Server Error"
