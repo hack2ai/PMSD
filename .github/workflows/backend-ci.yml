@@ -44,6 +44,9 @@ jobs:
       - name: Request context tests
         run: node test/requestContext.test.js
 
+      - name: Request logger tests
+        run: node test/requestLogger.test.js
+
       - name: Payment creation rate-limit tests
         run: node test/paymentCreateRateLimit.test.js
 
