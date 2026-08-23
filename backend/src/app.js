@@ -2,6 +2,7 @@ const express = require("express");
 const path = require("path");
 const cors = require("cors");
 const helmet = require("helmet");
+const requestContext = require("./middleware/requestContext");
 
 const authRoutes = require("./routes/authRoutes");
 const userRoutes = require("./routes/userRoutes");
@@ -26,6 +27,7 @@ const config = validateEnv();
 const app = express();
 
 app.disable("x-powered-by");
+app.use(requestContext);
 app.use(helmet());
 app.use(cors({
     origin(origin, callback) {
@@ -35,7 +37,7 @@ app.use(cors({
         return callback(new Error("CORS origin not allowed."));
     },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "X-PMSD-Signature", "X-Webhook-Signature"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-PMSD-Signature", "X-Webhook-Signature", "X-Request-Id"],
     credentials: false
 }));
 
@@ -52,7 +54,8 @@ app.use("/certificates", express.static(path.join(__dirname, "../certificates"))
 app.get("/", (req, res) => {
     res.status(200).json({
         success: true,
-        message: "PMSD Backend Running Successfully"
+        message: "PMSD Backend Running Successfully",
+        requestId: req.requestId
     });
 });
 
@@ -61,7 +64,8 @@ app.get("/api/lecture-access/health", (req, res) => {
         success: true,
         service: "lecture-access",
         status: "operational",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        requestId: req.requestId
     });
 });
 
@@ -85,15 +89,24 @@ app.use("/api/audit", auditRoutes);
 app.use((req, res) => {
     res.status(404).json({
         success: false,
-        message: "Route not found."
+        message: "Route not found.",
+        requestId: req.requestId
     });
 });
 
 app.use((err, req, res, next) => {
-    console.error("Unhandled error:", err.message || err);
+    console.error(JSON.stringify({
+        level: "error",
+        requestId: req.requestId,
+        method: req.method,
+        path: req.originalUrl,
+        error: err.message || "Internal Server Error"
+    }));
+
     res.status(err.status || 500).json({
         success: false,
-        message: err.message || "Internal Server Error"
+        message: err.status && err.status < 500 ? err.message : "Internal Server Error",
+        requestId: req.requestId
     });
 });
 
