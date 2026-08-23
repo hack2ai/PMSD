@@ -37,3 +37,6 @@ jobs:
 
       - name: Access policy tests
         run: npm test
+
+      - name: Payment webhook signature tests
+        run: node test/paymentWebhook.test.js
