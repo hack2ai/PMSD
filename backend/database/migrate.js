@@ -3,6 +3,10 @@ require("dotenv").config();
 const fs = require("fs");
 const path = require("path");
 const { Pool } = require("pg");
+const {
+    isValidMigrationFilename,
+    isNonEmptyMigration
+} = require("./migrationValidation");
 
 const pool = new Pool({
     host: process.env.DB_HOST,
@@ -17,7 +21,6 @@ const pool = new Pool({
 
 const MIGRATIONS_DIR = path.join(__dirname, "migrations");
 const MIGRATION_LOCK_ID = 82419631;
-const MIGRATION_FILENAME_PATTERN = /^\d{3}_[a-z0-9][a-z0-9_-]*\.sql$/;
 
 async function run() {
     const client = await pool.connect();
@@ -39,7 +42,7 @@ async function run() {
             .sort();
 
         for (const filename of files) {
-            if (!MIGRATION_FILENAME_PATTERN.test(filename)) {
+            if (!isValidMigrationFilename(filename)) {
                 throw new Error(`Invalid migration filename: ${filename}`);
             }
         }
@@ -57,7 +60,7 @@ async function run() {
             }
 
             const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, filename), "utf8");
-            if (!sql.trim()) {
+            if (!isNonEmptyMigration(sql)) {
                 throw new Error(`Migration is empty: ${filename}`);
             }
 
