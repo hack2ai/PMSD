@@ -10,18 +10,14 @@ const verifySignature = ({ provider, rawBody, signature }) => {
     const secret = getWebhookSecret(provider);
     if (!secret || !signature || !rawBody) return false;
 
-    const expected = crypto
-        .createHmac("sha256", secret)
-        .update(rawBody, "utf8")
-        .digest("hex");
+    const body = Buffer.isBuffer(rawBody) ? rawBody : Buffer.from(String(rawBody), "utf8");
+    const expected = crypto.createHmac("sha256", secret).update(body).digest();
+    const providedHex = String(signature).trim().replace(/^sha256=/i, "");
 
-    const provided = String(signature).trim().replace(/^sha256=/i, "");
-    if (!/^[a-f0-9]{64}$/i.test(provided)) return false;
+    if (!/^[a-f0-9]{64}$/i.test(providedHex)) return false;
+    const provided = Buffer.from(providedHex, "hex");
 
-    return crypto.timingSafeEqual(
-        Buffer.from(expected, "hex"),
-        Buffer.from(provided, "hex")
-    );
+    return provided.length === expected.length && crypto.timingSafeEqual(expected, provided);
 };
 
 const normalizeStatus = (eventType, payloadStatus) => {
@@ -34,12 +30,11 @@ const normalizeStatus = (eventType, payloadStatus) => {
 };
 
 const processWebhookEvent = async ({ provider, eventId, eventType, transactionId, payload, signature, rawBody }) => {
-    if (!provider || !eventId || !eventType || !transactionId || !payload) {
+    if (!provider || !eventId || !eventType || !transactionId || !payload || !rawBody) {
         return { statusCode: 400, body: { success: false, code: "INVALID_WEBHOOK", message: "Required webhook fields are missing." } };
     }
 
-    const signatureValid = verifySignature({ provider, rawBody, signature });
-    if (!signatureValid) {
+    if (!verifySignature({ provider, rawBody, signature })) {
         return { statusCode: 401, body: { success: false, code: "INVALID_SIGNATURE", message: "Webhook signature is invalid." } };
     }
 
@@ -77,7 +72,7 @@ const processWebhookEvent = async ({ provider, eventId, eventType, transactionId
             `UPDATE payments
              SET payment_status = $1
              WHERE transaction_id = $2
-               AND payment_status IN ('Pending', 'Paid', 'Failed', 'Cancelled', 'Refunded')
+               AND payment_status = 'Pending'
              RETURNING id, payment_status`,
             [nextStatus, transactionId]
         );
@@ -87,10 +82,10 @@ const processWebhookEvent = async ({ provider, eventId, eventType, transactionId
                 `UPDATE payment_webhook_events
                  SET processing_status = 'FAILED', processing_error = $2, processed_at = NOW()
                  WHERE id = $1`,
-                [inserted.rows[0].id, "PAYMENT_NOT_FOUND"]
+                [inserted.rows[0].id, "PAYMENT_NOT_PENDING_OR_NOT_FOUND"]
             );
             await client.query("COMMIT");
-            return { statusCode: 404, body: { success: false, code: "PAYMENT_NOT_FOUND", message: "Payment transaction was not found." } };
+            return { statusCode: 409, body: { success: false, code: "PAYMENT_NOT_PENDING", message: "Payment was not found or is already finalized." } };
         }
 
         await client.query(
@@ -101,7 +96,6 @@ const processWebhookEvent = async ({ provider, eventId, eventType, transactionId
         );
 
         await client.query("COMMIT");
-
         return {
             statusCode: 200,
             body: {
