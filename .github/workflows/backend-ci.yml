@@ -47,6 +47,9 @@ jobs:
       - name: Request logger tests
         run: node test/requestLogger.test.js
 
+      - name: Health check tests
+        run: node test/healthCheck.test.js
+
       - name: Payment creation rate-limit tests
         run: node test/paymentCreateRateLimit.test.js
 
