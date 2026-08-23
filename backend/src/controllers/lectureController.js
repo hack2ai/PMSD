@@ -3,6 +3,7 @@ const moduleModel = require("../models/moduleModel");
 
 const ALLOWED_TYPES = new Set(["VIDEO", "PDF", "LIVE", "EXTERNAL", "UPLOADED"]);
 const ALLOWED_STATUSES = new Set(["DRAFT", "PUBLISHED", "ARCHIVED", "UNAVAILABLE"]);
+const PRIVILEGED_ROLES = new Set(["admin", "instructor"]);
 
 const createLecture = async (req, res) => {
     try {
@@ -52,7 +53,15 @@ const getModuleLectures = async (req, res) => {
         }
 
         const lectures = await lectureModel.getLecturesByModuleId(req.params.moduleId);
-        return res.status(200).json({ success: true, total: lectures.length, lectures });
+        const visibleLectures = PRIVILEGED_ROLES.has(req.user?.role)
+            ? lectures
+            : lectures.filter((lecture) => lecture.status === "PUBLISHED");
+
+        return res.status(200).json({
+            success: true,
+            total: visibleLectures.length,
+            lectures: visibleLectures
+        });
     } catch (error) {
         console.error("getModuleLectures error:", error);
         return res.status(500).json({ success: false, message: "Unable to load lectures." });
@@ -65,6 +74,11 @@ const getLecture = async (req, res) => {
         if (!lecture) {
             return res.status(404).json({ success: false, message: "Lecture not found." });
         }
+
+        if (!PRIVILEGED_ROLES.has(req.user?.role) && lecture.status !== "PUBLISHED") {
+            return res.status(404).json({ success: false, message: "Lecture not found." });
+        }
+
         return res.status(200).json({ success: true, lecture });
     } catch (error) {
         console.error("getLecture error:", error);
