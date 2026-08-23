@@ -25,8 +25,6 @@ const isValidUrl = (value) => {
         const url = new URL(value);
         if (!["http:", "https:"].includes(url.protocol)) return false;
 
-        // Reject obvious local/private targets. Sources are educational resources,
-        // not arbitrary server-side fetch targets.
         const hostname = url.hostname.toLowerCase();
         const blockedHostnames = new Set(["localhost", "127.0.0.1", "::1"]);
         if (blockedHostnames.has(hostname)) return false;
@@ -47,6 +45,19 @@ const canManageCourse = async (user, courseId) => {
     const result = await pool.query(
         `SELECT 1 FROM courses WHERE id = $1 AND created_by = $2 LIMIT 1`,
         [courseId, user.id]
+    );
+
+    return result.rowCount > 0;
+};
+
+const canAccessLectureMetadata = async (user, lecture) => {
+    if (!user || !lecture) return false;
+    if (["admin", "instructor"].includes(user.role)) return true;
+    if (lecture.status !== "PUBLISHED") return false;
+
+    const result = await pool.query(
+        `SELECT 1 FROM enrollments WHERE user_id = $1 AND course_id = $2 LIMIT 1`,
+        [user.id, lecture.course_id]
     );
 
     return result.rowCount > 0;
@@ -113,10 +124,19 @@ const getLectureSources = async (req, res) => {
             return res.status(404).json({ success: false, message: "Lecture not found." });
         }
 
-        const includeInactive = req.user?.role === "admin" || req.user?.role === "instructor";
+        const privileged = ["admin", "instructor"].includes(req.user?.role);
+        if (!privileged && !(await canAccessLectureMetadata(req.user, lecture))) {
+            return res.status(403).json({
+                success: false,
+                code: "LECTURE_ACCESS_REQUIRED",
+                message: "You are not authorized to inspect lecture sources."
+            });
+        }
+
+        const includeInactive = privileged;
         const sources = await lectureSourceModel.getSourcesByLectureId(req.params.lectureId, includeInactive);
 
-        const responseSources = includeInactive
+        const responseSources = privileged
             ? sources
             : sources.map(({ source_url, ...source }) => source);
 
