@@ -4,7 +4,7 @@ const receivePaymentWebhook = async (req, res) => {
     try {
         const provider = req.params.provider;
         const signature = req.get("x-pmsd-signature") || req.get("x-webhook-signature");
-        const rawBody = req.rawBody || JSON.stringify(req.body || {});
+        const rawBody = req.rawBody;
         const { event_id, event_type, transaction_id, payload } = req.body || {};
 
         const result = await processWebhookEvent({
