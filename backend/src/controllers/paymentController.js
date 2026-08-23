@@ -53,13 +53,39 @@ const makePayment = async (req, res) => {
             });
         }
 
+        const coursePrice = Number(course.price || 0);
+        if (!Number.isFinite(coursePrice) || coursePrice < 0) {
+            return res.status(500).json({
+                success: false,
+                message: "Course pricing is not configured correctly."
+            });
+        }
+
+        if (coursePrice <= 0) {
+            return res.status(400).json({
+                success: false,
+                code: "FREE_COURSE",
+                message: "A payment is not required for this course."
+            });
+        }
+
+        const requestedAmount = Number(numericAmount.toFixed(2));
+        const authoritativeAmount = Number(coursePrice.toFixed(2));
+        if (requestedAmount !== authoritativeAmount) {
+            return res.status(400).json({
+                success: false,
+                code: "AMOUNT_MISMATCH",
+                message: "Payment amount does not match the course price."
+            });
+        }
+
         // This endpoint records a payment intent. It must not claim a real
-        // gateway payment succeeded without a verified provider callback.
+        // gateway payment succeeded without a verified provider confirmation.
         const paymentReference = `PENDING-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
         const payment = await createPayment(
             userId,
             course_id,
-            Number(numericAmount.toFixed(2)),
+            authoritativeAmount,
             normalizedMethod,
             "Pending",
             paymentReference
