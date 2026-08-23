@@ -22,6 +22,7 @@ const accessRoutes = require("./routes/accessRoutes");
 const lectureProgressRoutes = require("./routes/lectureProgressRoutes");
 const auditRoutes = require("./routes/auditRoutes");
 const adminDashboardRoutes = require("./routes/adminDashboardRoutes");
+const healthRoutes = require("./routes/healthRoutes");
 const { validateEnv } = require("./config/env");
 
 const config = validateEnv();
@@ -42,6 +43,10 @@ app.use(cors({
     allowedHeaders: ["Content-Type", "Authorization", "X-PMSD-Signature", "X-Webhook-Signature", "X-Request-Id"],
     credentials: false
 }));
+
+// Public operational endpoints. Keep these outside authentication so
+// container/orchestrator health probes can run without credentials.
+app.use("/health", healthRoutes);
 
 // Payment-provider callbacks must capture the exact signed bytes before
 // the normal JSON parser runs.
