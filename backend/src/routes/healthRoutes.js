@@ -1,5 +1,6 @@
 const express = require("express");
 const pool = require("../config/db");
+const { checkDatabase } = require("../utils/healthCheck");
 
 const router = express.Router();
 
@@ -13,14 +14,12 @@ router.get("/live", (req, res) => {
 
 router.get("/ready", async (req, res) => {
     try {
-        await pool.query("SELECT 1");
+        const checks = await checkDatabase(pool);
 
         return res.status(200).json({
             success: true,
             status: "ready",
-            checks: {
-                database: "ok"
-            },
+            checks,
             requestId: req.requestId
         });
     } catch (error) {
