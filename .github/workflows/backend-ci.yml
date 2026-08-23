@@ -46,3 +46,6 @@ jobs:
 
       - name: Payment creation rate-limit tests
         run: node test/paymentCreateRateLimit.test.js
+
+      - name: Payment amount validation tests
+        run: node test/paymentAmountValidation.test.js
