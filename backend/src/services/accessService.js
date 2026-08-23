@@ -41,7 +41,7 @@ const hasPaidAccess = async (userId, courseId) => {
 
 const isExpired = (expiresAt) => expiresAt && new Date(expiresAt).getTime() <= Date.now();
 
-const recordDenied = async ({ lecture, user, reason, ipHash, userAgent }) => {
+const recordDenied = async ({ lecture, user, reason, ipHash, userAgent, requestId }) => {
     await accessAttemptModel.createAccessAttempt({
         lectureId: lecture.id,
         userId: user?.id,
@@ -60,7 +60,8 @@ const recordDenied = async ({ lecture, user, reason, ipHash, userAgent }) => {
         outcome: "DENIED",
         reason,
         ipHash,
-        userAgent
+        userAgent,
+        requestId
     });
 };
 
@@ -75,7 +76,7 @@ const selectSource = (sources) => {
     return { source, sourceIndex, eligible };
 };
 
-const resolveLectureAccess = async ({ lectureId, user, ip, userAgent }) => {
+const resolveLectureAccess = async ({ lectureId, user, ip, userAgent, requestId }) => {
     const ipHash = hashIp(ip);
     const lecture = await lectureModel.getLectureById(lectureId);
 
@@ -89,7 +90,8 @@ const resolveLectureAccess = async ({ lectureId, user, ip, userAgent }) => {
             outcome: "NOT_FOUND",
             reason: "LECTURE_NOT_FOUND",
             ipHash,
-            userAgent
+            userAgent,
+            requestId
         });
         return {
             statusCode: 404,
@@ -102,7 +104,7 @@ const resolveLectureAccess = async ({ lectureId, user, ip, userAgent }) => {
     if (!privileged) {
         const enrolled = await isEnrolled(user.id, lecture.course_id);
         if (!enrolled) {
-            await recordDenied({ lecture, user, reason: "NOT_ENROLLED", ipHash, userAgent });
+            await recordDenied({ lecture, user, reason: "NOT_ENROLLED", ipHash, userAgent, requestId });
             return {
                 statusCode: 403,
                 body: { success: false, code: "NOT_ENROLLED", message: "You are not enrolled in this course." }
@@ -112,7 +114,7 @@ const resolveLectureAccess = async ({ lectureId, user, ip, userAgent }) => {
         if (Number(lecture.course_price || 0) > 0) {
             const paid = await hasPaidAccess(user.id, lecture.course_id);
             if (!paid) {
-                await recordDenied({ lecture, user, reason: "PAYMENT_REQUIRED", ipHash, userAgent });
+                await recordDenied({ lecture, user, reason: "PAYMENT_REQUIRED", ipHash, userAgent, requestId });
                 return {
                     statusCode: 402,
                     body: {
@@ -126,7 +128,7 @@ const resolveLectureAccess = async ({ lectureId, user, ip, userAgent }) => {
     }
 
     if (lecture.status !== "PUBLISHED" && !privileged) {
-        await recordDenied({ lecture, user, reason: "LECTURE_NOT_PUBLISHED", ipHash, userAgent });
+        await recordDenied({ lecture, user, reason: "LECTURE_NOT_PUBLISHED", ipHash, userAgent, requestId });
         return {
             statusCode: 403,
             body: { success: false, code: "LECTURE_NOT_PUBLISHED", message: "This lecture is not currently available." }
@@ -154,7 +156,8 @@ const resolveLectureAccess = async ({ lectureId, user, ip, userAgent }) => {
             outcome: "UNAVAILABLE",
             reason: "NO_HEALTHY_APPROVED_SOURCE",
             ipHash,
-            userAgent
+            userAgent,
+            requestId
         });
         return {
             statusCode: 503,
@@ -186,7 +189,8 @@ const resolveLectureAccess = async ({ lectureId, user, ip, userAgent }) => {
             reason: selectionReason,
             metadata: { sourceType: source.source_type, priority: source.priority, fallbackUsed, eligibleSourceCount: eligible.length },
             ipHash,
-            userAgent
+            userAgent,
+            requestId
         });
         return {
             statusCode: 200,
@@ -220,7 +224,8 @@ const resolveLectureAccess = async ({ lectureId, user, ip, userAgent }) => {
         reason: selectionReason,
         metadata: { sourceType: source.source_type, priority: source.priority, fallbackUsed, eligibleSourceCount: eligible.length },
         ipHash,
-        userAgent
+        userAgent,
+        requestId
     });
 
     return {
