@@ -1,3 +1,5 @@
+const HEALTHY_STATUSES = new Set(["AVAILABLE", "REQUIRES_AUTH"]);
+
 const isExpired = (expiresAt, now = Date.now()) => {
     if (!expiresAt) return false;
     const timestamp = new Date(expiresAt).getTime();
@@ -7,7 +9,7 @@ const isExpired = (expiresAt, now = Date.now()) => {
 const getAvailableSources = (sources, now = Date.now()) => {
     return sources.filter((source) => {
         if (!source || source.is_active === false) return false;
-        if (source.status === "DISABLED") return false;
+        if (!HEALTHY_STATUSES.has(source.status)) return false;
         if (isExpired(source.expires_at, now)) return false;
         return true;
     });
@@ -18,10 +20,7 @@ const selectBestSource = (sources, now = Date.now()) => {
         .slice()
         .sort((a, b) => (a.priority ?? 100) - (b.priority ?? 100) || a.id - b.id);
 
-    return candidates.find((source) => source.status === "AVAILABLE")
-        || candidates.find((source) => source.status === "REQUIRES_AUTH" || source.requires_auth)
-        || candidates[0]
-        || null;
+    return candidates[0] || null;
 };
 
 module.exports = {
