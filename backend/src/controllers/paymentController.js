@@ -7,6 +7,7 @@ const {
 } = require("../models/paymentModel");
 
 const { getCourseById } = require("../models/courseModel");
+const { validatePaymentAmount } = require("../utils/paymentValidation");
 
 const ALLOWED_PAYMENT_METHODS = new Set([
     "CARD",
@@ -29,14 +30,6 @@ const makePayment = async (req, res) => {
             });
         }
 
-        const numericAmount = Number(amount);
-        if (!Number.isFinite(numericAmount) || numericAmount <= 0) {
-            return res.status(400).json({
-                success: false,
-                message: "Amount must be a positive number."
-            });
-        }
-
         const normalizedMethod = String(payment_method).trim().toUpperCase();
         if (!ALLOWED_PAYMENT_METHODS.has(normalizedMethod)) {
             return res.status(400).json({
@@ -53,29 +46,29 @@ const makePayment = async (req, res) => {
             });
         }
 
-        const coursePrice = Number(course.price || 0);
-        if (!Number.isFinite(coursePrice) || coursePrice < 0) {
-            return res.status(500).json({
-                success: false,
-                message: "Course pricing is not configured correctly."
-            });
-        }
+        const validation = validatePaymentAmount({
+            requestedAmount: amount,
+            coursePrice: course.price
+        });
 
-        if (coursePrice <= 0) {
+        if (!validation.ok) {
+            if (validation.code === "INVALID_COURSE_PRICE") {
+                return res.status(500).json({
+                    success: false,
+                    message: "Course pricing is not configured correctly."
+                });
+            }
+
+            const messages = {
+                INVALID_AMOUNT: "Amount must be a positive number.",
+                FREE_COURSE: "A payment is not required for this course.",
+                AMOUNT_MISMATCH: "Payment amount does not match the course price."
+            };
+
             return res.status(400).json({
                 success: false,
-                code: "FREE_COURSE",
-                message: "A payment is not required for this course."
-            });
-        }
-
-        const requestedAmount = Number(numericAmount.toFixed(2));
-        const authoritativeAmount = Number(coursePrice.toFixed(2));
-        if (requestedAmount !== authoritativeAmount) {
-            return res.status(400).json({
-                success: false,
-                code: "AMOUNT_MISMATCH",
-                message: "Payment amount does not match the course price."
+                code: validation.code,
+                message: messages[validation.code]
             });
         }
 
@@ -85,7 +78,7 @@ const makePayment = async (req, res) => {
         const payment = await createPayment(
             userId,
             course_id,
-            authoritativeAmount,
+            validation.amount,
             normalizedMethod,
             "Pending",
             paymentReference
@@ -109,34 +102,20 @@ const makePayment = async (req, res) => {
 const myPayments = async (req, res) => {
     try {
         const payments = await getUserPayments(req.user.id);
-        return res.status(200).json({
-            success: true,
-            total: payments.length,
-            payments
-        });
+        return res.status(200).json({ success: true, total: payments.length, payments });
     } catch (err) {
         console.error("myPayments error:", err);
-        return res.status(500).json({
-            success: false,
-            message: "Unable to load your payments."
-        });
+        return res.status(500).json({ success: false, message: "Unable to load your payments." });
     }
 };
 
 const allPayments = async (req, res) => {
     try {
         const payments = await getAllPayments();
-        return res.status(200).json({
-            success: true,
-            total: payments.length,
-            payments
-        });
+        return res.status(200).json({ success: true, total: payments.length, payments });
     } catch (err) {
         console.error("allPayments error:", err);
-        return res.status(500).json({
-            success: false,
-            message: "Unable to load payments."
-        });
+        return res.status(500).json({ success: false, message: "Unable to load payments." });
     }
 };
 
@@ -144,63 +123,28 @@ const changePaymentStatus = async (req, res) => {
     try {
         const allowedStatuses = new Set(["Pending", "Paid", "Failed", "Cancelled", "Refunded"]);
         const paymentStatus = String(req.body.payment_status || "").trim();
-
         if (!allowedStatuses.has(paymentStatus)) {
-            return res.status(400).json({
-                success: false,
-                message: "Invalid payment status."
-            });
+            return res.status(400).json({ success: false, message: "Invalid payment status." });
         }
 
         const payment = await updatePaymentStatus(req.params.id, paymentStatus);
-        if (!payment) {
-            return res.status(404).json({
-                success: false,
-                message: "Payment not found."
-            });
-        }
-
-        return res.status(200).json({
-            success: true,
-            message: "Payment status updated successfully.",
-            payment
-        });
+        if (!payment) return res.status(404).json({ success: false, message: "Payment not found." });
+        return res.status(200).json({ success: true, message: "Payment status updated successfully.", payment });
     } catch (err) {
         console.error("changePaymentStatus error:", err);
-        return res.status(500).json({
-            success: false,
-            message: "Unable to update payment status."
-        });
+        return res.status(500).json({ success: false, message: "Unable to update payment status." });
     }
 };
 
 const removePayment = async (req, res) => {
     try {
         const payment = await deletePayment(req.params.id);
-        if (!payment) {
-            return res.status(404).json({
-                success: false,
-                message: "Payment not found."
-            });
-        }
-
-        return res.status(200).json({
-            success: true,
-            message: "Payment deleted successfully."
-        });
+        if (!payment) return res.status(404).json({ success: false, message: "Payment not found." });
+        return res.status(200).json({ success: true, message: "Payment deleted successfully." });
     } catch (err) {
         console.error("removePayment error:", err);
-        return res.status(500).json({
-            success: false,
-            message: "Unable to delete payment."
-        });
+        return res.status(500).json({ success: false, message: "Unable to delete payment." });
     }
 };
 
-module.exports = {
-    makePayment,
-    myPayments,
-    allPayments,
-    changePaymentStatus,
-    removePayment
-};
+module.exports = { makePayment, myPayments, allPayments, changePaymentStatus, removePayment };
