@@ -49,3 +49,6 @@ jobs:
 
       - name: Payment amount validation tests
         run: node test/paymentAmountValidation.test.js
+
+      - name: Payment status transition tests
+        run: node test/paymentStatusTransitions.test.js
