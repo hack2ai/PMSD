@@ -52,3 +52,6 @@ jobs:
 
       - name: Payment status transition tests
         run: node test/paymentStatusTransitions.test.js
+
+      - name: Migration validation tests
+        run: node test/migrationValidation.test.js
