@@ -8,6 +8,7 @@ const userRoutes = require("./routes/userRoutes");
 const courseRoutes = require("./routes/courseRoutes");
 const enrollmentRoutes = require("./routes/enrollmentRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
+const paymentWebhookRoutes = require("./routes/paymentWebhookRoutes");
 const certificateRoutes = require("./routes/certificateRoutes");
 const uploadRoutes = require("./routes/uploadRoutes");
 const dashboardRoutes = require("./routes/dashboardRoutes");
@@ -34,9 +35,13 @@ app.use(cors({
         return callback(new Error("CORS origin not allowed."));
     },
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-PMSD-Signature", "X-Webhook-Signature"],
     credentials: false
 }));
+
+// Payment-provider callbacks must capture the exact signed bytes before
+// the normal JSON parser runs.
+app.use("/api/payments/webhooks", paymentWebhookRoutes);
 
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true, limit: "1mb" }));
