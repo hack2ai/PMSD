@@ -4,6 +4,7 @@ const { validateEnv } = require("./config/env");
 const config = validateEnv();
 const app = require("./app");
 const pool = require("./config/db");
+const { gracefulShutdown } = require("./utils/shutdown");
 
 const server = app.listen(config.port, "0.0.0.0", () => {
     console.log("=================================");
@@ -44,34 +45,18 @@ const shutdown = async (signal) => {
     }, 15000);
     forceExit.unref();
 
-    server.close(async (serverError) => {
-        if (serverError) {
-            console.error(JSON.stringify({
-                level: "error",
-                event: "server_shutdown_error",
-                error: serverError.message
-            }));
-        }
+    const result = await gracefulShutdown(server, pool);
 
-        try {
-            await pool.end();
-            console.log(JSON.stringify({
-                level: "info",
-                event: "server_shutdown_completed",
-                signal
-            }));
-            clearTimeout(forceExit);
-            process.exitCode = serverError ? 1 : 0;
-        } catch (dbError) {
-            console.error(JSON.stringify({
-                level: "error",
-                event: "database_pool_shutdown_error",
-                error: dbError.message
-            }));
-            clearTimeout(forceExit);
-            process.exitCode = 1;
-        }
-    });
+    if (result.ok) {
+        console.log(JSON.stringify({
+            level: "info",
+            event: "server_shutdown_completed",
+            signal
+        }));
+    }
+
+    clearTimeout(forceExit);
+    process.exitCode = result.ok ? 0 : 1;
 };
 
 process.once("SIGTERM", () => shutdown("SIGTERM"));
