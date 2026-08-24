@@ -50,6 +50,9 @@ jobs:
       - name: Health check tests
         run: node test/healthCheck.test.js
 
+      - name: Shutdown lifecycle tests
+        run: node test/shutdown.test.js
+
       - name: Payment creation rate-limit tests
         run: node test/paymentCreateRateLimit.test.js
 
