@@ -42,4 +42,34 @@ router.get("/ready", async (req, res) => {
     }
 });
 
+router.get("/", async (req, res) => {
+    try {
+        const checks = await checkDatabase(pool);
+
+        return res.status(200).json({
+            success: true,
+            status: "healthy",
+            checks,
+            requestId: req.requestId
+        });
+    } catch (error) {
+        console.error(JSON.stringify({
+            level: "error",
+            event: "health_check_failed",
+            requestId: req.requestId,
+            dependency: "database",
+            error: error.message
+        }));
+
+        return res.status(503).json({
+            success: false,
+            status: "unhealthy",
+            checks: {
+                database: "unavailable"
+            },
+            requestId: req.requestId
+        });
+    }
+});
+
 module.exports = router;
