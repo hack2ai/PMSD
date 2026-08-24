@@ -7,6 +7,12 @@ const requiredProductionVars = [
     "JWT_SECRET"
 ];
 
+const isValidPort = (value) => {
+    if (value === undefined || value === null || value === "") return false;
+    const port = Number(value);
+    return Number.isInteger(port) && port >= 1 && port <= 65535;
+};
+
 const validateEnv = () => {
     const nodeEnv = process.env.NODE_ENV || "development";
     const missing = requiredProductionVars.filter((name) => !process.env[name]);
@@ -19,15 +25,35 @@ const validateEnv = () => {
         throw new Error("JWT_SECRET must be at least 32 characters long.");
     }
 
+    if (process.env.DB_PORT && !isValidPort(process.env.DB_PORT)) {
+        throw new Error("DB_PORT must be an integer between 1 and 65535.");
+    }
+
+    if (process.env.PORT && !isValidPort(process.env.PORT)) {
+        throw new Error("PORT must be an integer between 1 and 65535.");
+    }
+
+    const configuredOrigins = (process.env.CORS_ORIGINS || process.env.FRONTEND_URL || "")
+        .split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean);
+
+    if (nodeEnv === "production" && configuredOrigins.length === 0) {
+        throw new Error("CORS_ORIGINS or FRONTEND_URL is required in production.");
+    }
+
+    if (nodeEnv === "production" && configuredOrigins.some((origin) => origin === "*")) {
+        throw new Error("Wildcard CORS origin is not allowed in production.");
+    }
+
     return {
         nodeEnv,
         port: Number(process.env.PORT || 5001),
-        frontendUrl: process.env.FRONTEND_URL || "http://localhost:5173",
-        corsOrigins: (process.env.CORS_ORIGINS || process.env.FRONTEND_URL || "http://localhost:5173")
-            .split(",")
-            .map((origin) => origin.trim())
-            .filter(Boolean)
+        frontendUrl: process.env.FRONTEND_URL || configuredOrigins[0] || "http://localhost:5173",
+        corsOrigins: configuredOrigins.length > 0
+            ? configuredOrigins
+            : ["http://localhost:5173"]
     };
 };
 
-module.exports = { validateEnv };
+module.exports = { validateEnv, isValidPort };
