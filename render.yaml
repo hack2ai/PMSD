@@ -1,0 +1,53 @@
+services:
+  - type: web
+    name: pmsd-backend
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health/live
+    preDeployCommand: cd backend && npm run db:migrate
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "10000"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DB_HOST
+        fromDatabase:
+          name: pmsd-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: pmsd-db
+          property: port
+      - key: DB_USER
+        fromDatabase:
+          name: pmsd-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: pmsd-db
+          property: password
+      - key: DB_NAME
+        fromDatabase:
+          name: pmsd-db
+          property: database
+      - key: FRONTEND_URL
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false
+      - key: PAYMENT_WEBHOOK_SECRET
+        sync: false
+      - key: ACCESS_LOG_SALT
+        sync: false
+      - key: SOURCE_HEALTH_TIMEOUT_MS
+        value: "5000"
+
+    autoDeployTrigger: commit
+
+databases:
+  - name: pmsd-db
+    plan: free
+    postgresMajorVersion: "17"
