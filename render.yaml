@@ -6,7 +6,8 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     healthCheckPath: /health/live
-    preDeployCommand: cd backend && npm run db:migrate
+    preDeployCommand: npm run db:migrate
+    autoDeploy: true
     envVars:
       - key: NODE_ENV
         value: production
@@ -44,8 +45,6 @@ services:
         sync: false
       - key: SOURCE_HEALTH_TIMEOUT_MS
         value: "5000"
-
-    autoDeployTrigger: commit
 
 databases:
   - name: pmsd-db
