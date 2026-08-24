@@ -53,6 +53,9 @@ jobs:
       - name: Shutdown lifecycle tests
         run: node test/shutdown.test.js
 
+      - name: Dockerfile tests
+        run: node test/dockerfile.test.js
+
       - name: Payment creation rate-limit tests
         run: node test/paymentCreateRateLimit.test.js
 
