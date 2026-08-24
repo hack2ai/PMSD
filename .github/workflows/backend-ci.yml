@@ -38,6 +38,9 @@ jobs:
       - name: Access policy tests
         run: npm test
 
+      - name: Production environment validation tests
+        run: node test/env.test.js
+
       - name: Payment webhook signature tests
         run: node test/paymentWebhook.test.js
 
