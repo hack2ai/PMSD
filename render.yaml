@@ -6,7 +6,6 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     healthCheckPath: /health/live
-    preDeployCommand: npm run db:migrate
     autoDeploy: true
     envVars:
       - key: NODE_ENV
