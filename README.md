@@ -1,504 +1,264 @@
-# 🎓 PMSD - Professional Master Skill Development
+# PMSD — Professional Master Skill Development
 
 <p align="center">
   <img src="assets/pmsd-logo.png" width="170" alt="PMSD Logo"/>
 </p>
 
-<h3 align="center">
-A Modern Full Stack Learning Management System (LMS)
-</h3>
+<p align="center"><strong>A production-oriented full-stack Learning Management System (LMS)</strong></p>
 
-<p align="center">
-Built using React, Node.js, Express.js, PostgreSQL, JWT Authentication, PDFKit & QR Code Verification.
-</p>
+PMSD is a React + Node.js/Express + PostgreSQL LMS with JWT authentication, role-based authorization, course enrollment, payments, certificate generation, QR verification, dashboards, and a hardened backend deployment path.
 
-<p align="center">
+## Technology
 
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)
-![Node.js](https://img.shields.io/badge/Node.js-Express-339933?logo=node.js&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-336791?logo=postgresql&logoColor=white)
-![JWT](https://img.shields.io/badge/JWT-Authentication-orange)
-![License](https://img.shields.io/badge/Status-Under_Development-success)
+- **Frontend:** React 19, React Router, Axios, Vite
+- **Backend:** Node.js 22, Express 4
+- **Database:** PostgreSQL via `pg`
+- **Security:** JWT, bcrypt, Helmet, CORS policy, request correlation, rate limiting, signed payment webhooks
+- **Documents:** PDFKit
+- **Verification:** QRCode
+- **Deployment:** Docker, GitHub Actions
 
-</p>
+## Architecture
 
----
-
-# 📖 Project Overview
-
-PMSD (Professional Master Skill Development) is a complete Learning Management System (LMS) built with a modern full-stack architecture.
-
-The platform enables users to:
-
-- Register and log in securely
-- Browse and enroll in courses
-- Track enrolled courses
-- View payment history
-- Download professionally generated PDF certificates
-- Verify certificates using QR codes
-- Manage their learning dashboard
-
-The backend follows the **MVC architecture** and exposes RESTful APIs that can be consumed by the React frontend.
-
----
-
-# 📑 Table of Contents
-
-- Project Features
-- Tech Stack
-- System Architecture
-- Folder Structure
-- Database
-- REST APIs
-- Security Features
-- Installation
-- Screenshots
-- Project Progress
-- Future Improvements
-- Developer
-
----
-
-# ✨ Features
-
-## 🔐 Authentication
-
-- User Registration
-- Secure Login
-- JWT Authentication
-- Password Encryption using bcrypt
-- Protected Routes
-- Role-based Authorization
-
----
-
-## 👤 User Management
-
-- User Profile
-- Profile Update
-- Profile Image Upload
-
----
-
-## 📚 Course Management
-
-- Create Courses
-- Update Courses
-- Delete Courses
-- Course Details
-- Course Listing
-
----
-
-## 🎯 Enrollment
-
-- Enroll in Courses
-- View My Courses
-- Enrollment History
-
----
-
-## 💳 Payments
-
-- Payment Records
-- Payment History
-- Purchase Tracking
-
----
-
-## 🏆 Certificates
-
-- Automatic PDF Certificate Generation
-- Professional Certificate Layout
-- Unique Certificate Number
-- QR Code Generation
-- Download Certificate
-
----
-
-## ✅ Certificate Verification
-
-- Public Certificate Verification
-- QR Code Verification
-- Certificate Authenticity Check
-
----
-
-## 📊 Dashboard
-
-Dashboard includes:
-
-- Total Enrolled Courses
-- Total Certificates
-- Total Payments
-- Recent Courses
-- Recent Certificates
-- Payment History
-
----
-
-# 🛠 Tech Stack
-
-## Frontend
-
-- React 19
-- React Router DOM
-- Axios
-- Vite
-
----
-
-## Backend
-
-- Node.js
-- Express.js
-- JWT
-- bcrypt
-- Multer
-- PDFKit
-- QRCode
-
----
-
-## Database
-
-- PostgreSQL
-
----
-
-# 🏗 System Architecture
-
-```
-                React + Vite
-                      │
-               React Router DOM
-                      │
-                  Axios API
-                      │
-               Express.js Backend
-                      │
-          Authentication Middleware
-                      │
-              PostgreSQL Database
-                      │
- PDF Generator + QR Certificate System
+```text
+React + Vite
+     │
+     │ Axios / REST
+     ▼
+Express API
+     │
+     ├── Authentication / Authorization
+     ├── Courses / Modules / Lectures
+     ├── Enrollment / Payments
+     ├── Certificates / QR Verification
+     ├── Request Context + Structured Logging
+     └── Health / Readiness
+     │
+     ▼
+PostgreSQL
 ```
 
----
+## Core Features
 
-# 📂 Project Structure
+### Authentication & authorization
 
-```
-PMSD
-│
-├── assets
-│
-├── backend
-│   ├── src
-│   │
-│   ├── config
-│   ├── controllers
-│   ├── middleware
-│   ├── models
-│   ├── routes
-│   ├── utils
-│   └── certificates
-│
-├── frontend
-│   ├── src
-│   │
-│   ├── components
-│   ├── context
-│   ├── pages
-│   ├── routes
-│   └── services
-│
+- Registration and login
+- JWT authentication
+- Password hashing with bcrypt
+- Role-based access control
+- Protected API routes
+
+### Learning management
+
+- Course management
+- Modules and lectures
+- Enrollment management
+- Lecture progress tracking
+- Source/lecture access controls
+
+### Payments
+
+- Payment creation and history
+- Amount validation
+- Payment state-transition validation
+- Signed webhook verification
+- Payment creation rate limiting
+
+### Certificates
+
+- PDF certificate generation
+- Unique certificate numbers
+- QR-code verification
+- Public certificate verification endpoint
+
+### Production hardening
+
+- Helmet security headers
+- Explicit CORS allowlist
+- Request IDs / correlation IDs
+- Structured request completion logs
+- PostgreSQL readiness probe
+- Liveness probe
+- Graceful HTTP + database shutdown
+- Transactional database migrations with concurrency protection
+- Production environment validation
+- Production Docker image running as non-root
+- Automated regression tests in GitHub Actions
+
+## Project Structure
+
+```text
+PMSD/
+├── assets/
+├── backend/
+│   ├── database/
+│   ├── src/
+│   ├── test/
+│   ├── Dockerfile
+│   ├── .dockerignore
+│   ├── .env.example
+│   └── package.json
+├── frontend/
 └── README.md
 ```
 
----
+## Backend Setup
 
-# 🗄 Database
+### 1. Configure environment
 
-Tables Used
-
-- Users
-- Courses
-- Enrollments
-- Payments
-- Certificates
-
----
-
-# 🔗 REST API Endpoints
-
-## Authentication
-
+```bash
+cd backend
+cp .env.example .env
 ```
+
+Edit `.env` with your local PostgreSQL credentials and a strong JWT secret.
+
+For production, `NODE_ENV=production` requires the database credentials and JWT secret, and rejects invalid ports or wildcard CORS configuration.
+
+### 2. Install dependencies
+
+```bash
+npm ci
+```
+
+### 3. Run migrations
+
+```bash
+npm run migrate
+```
+
+### 4. Start development server
+
+```bash
+npm run dev
+```
+
+### 5. Start production server
+
+```bash
+npm start
+```
+
+Default backend port is `5001` unless `PORT` is configured.
+
+## Health Endpoints
+
+These endpoints are intentionally public for deployment probes:
+
+```text
+GET /health/live
+GET /health/ready
+```
+
+- `/health/live` confirms the process is alive.
+- `/health/ready` checks PostgreSQL and returns `503` when the database is unavailable.
+
+## Docker
+
+Build and run the backend image:
+
+```bash
+docker build -t pmsd-backend ./backend
+docker run --env-file backend/.env -p 5001:5001 pmsd-backend
+```
+
+The production image uses Node.js 22, installs production dependencies with `npm ci --omit=dev`, runs as the non-root `node` user, and probes `/health/live`.
+
+## CI
+
+Backend CI runs on pushes and pull requests affecting `backend/**`. It covers:
+
+- Syntax checks
+- Access-policy tests
+- Authentication/payment security tests
+- Request context and logging
+- Health/readiness behavior
+- Graceful shutdown
+- Dockerfile definition
+- Production environment validation
+- Migration validation
+
+## API Overview
+
+### Authentication
+
+```text
 POST /api/auth/register
 POST /api/auth/login
 ```
 
----
+### Courses
 
-## Users
-
-```
-GET    /api/users
-GET    /api/users/:id
-PUT    /api/users/:id
-DELETE /api/users/:id
-```
-
----
-
-## Courses
-
-```
+```text
 GET    /api/courses
 POST   /api/courses
 PUT    /api/courses/:id
 DELETE /api/courses/:id
 ```
 
----
+### Enrollment
 
-## Enrollment
-
-```
+```text
 POST /api/enrollments
 GET  /api/enrollments
 ```
 
----
+### Payments
 
-## Payments
-
-```
+```text
 POST /api/payments
 GET  /api/payments
 ```
 
----
+### Certificates
 
-## Certificates
-
-```
+```text
 POST /api/certificates
 GET  /api/certificates
 GET  /api/certificates/verify/:certificateNumber
 ```
 
----
-
-## Dashboard
-
-```
-GET /api/dashboard
-
-GET /api/dashboard/my-courses
-
-GET /api/dashboard/my-certificates
-
-GET /api/dashboard/payment-history
-```
-
----
-
-# 🔐 Security Features
-
-- JWT Authentication
-- Password Hashing
-- Authorization Middleware
-- Protected APIs
-- Secure File Upload
-- QR Verification
-- Certificate Validation
-
----
-
-# 💼 Skills Demonstrated
-
-- Full Stack Development
-- React Development
-- Node.js Development
-- Express.js REST APIs
-- PostgreSQL Database Design
-- JWT Authentication
-- MVC Architecture
-- PDF Generation
-- QR Code Generation
-- File Upload Management
-- RESTful API Design
-
----
-
-# 📦 Major Packages
-
-## Backend
-
-- express
-- pg
-- jsonwebtoken
-- bcrypt
-- multer
-- pdfkit
-- qrcode
-- dotenv
-
----
-
-## Frontend
-
-- react
-- react-router-dom
-- axios
-- vite
-
----
-
-# 📸 Screenshots
-
-> Screenshots will be added after the frontend UI is completed.
-
-Expected Screenshots
-
-- Login
-- Register
-- Dashboard
-- Courses
-- Certificates
-- Payment History
-- Certificate Verification
-
----
-
-# 🚀 Installation
-
-## Clone Repository
-
-```bash
-git clone https://github.com/hack2ai/PMSD.git
-```
-
----
-
-## Backend
-
-```bash
-cd backend
-
-npm install
-
-npm run dev
-```
-
----
-
-## Frontend
-
-```bash
-cd frontend
-
-npm install
-
-npm run dev
-```
-
----
-
-# 🌐 Default URLs
-
-Backend
-
-```
-http://localhost:5001
-```
-
-Frontend
-
-```
-http://localhost:5173
-```
-
----
-
-# 📈 Project Progress
+## Development Status
 
 ### Backend
 
-- [x] Authentication
+- [x] Authentication and authorization
 - [x] Users
 - [x] Courses
 - [x] Enrollments
 - [x] Payments
 - [x] Dashboard
-- [x] PDF Certificate
-- [x] QR Verification
-
----
+- [x] Certificates
+- [x] QR verification
+- [x] Production hardening
+- [x] CI regression coverage
+- [x] Docker runtime
 
 ### Frontend
 
-- [x] React Setup
-- [x] Routing
-- [x] API Service Layer
-- [x] Project Structure
-- [ ] Login UI
-- [ ] Register UI
-- [ ] Dashboard UI
-- [ ] Responsive Design
-- [ ] Admin Panel
+The frontend remains an active workstream. UI completeness should be evaluated from the current frontend implementation rather than treated as complete solely because the backend is production-hardened.
 
----
+## Release Checklist
 
-# 🎯 Future Improvements
+Before deploying production:
 
-- Stripe Payment Gateway
-- Email Notifications
-- Course Videos
-- Quiz Module
-- Assignment Submission
-- Admin Analytics Dashboard
-- Dark Mode
-- Mobile Responsive Design
-- Docker Deployment
-- Cloud Hosting
+- [ ] Set `NODE_ENV=production`
+- [ ] Configure PostgreSQL credentials
+- [ ] Set a strong random `JWT_SECRET` of at least 32 characters
+- [ ] Configure explicit `CORS_ORIGINS`
+- [ ] Configure payment webhook secrets where applicable
+- [ ] Run database migrations
+- [ ] Verify `/health/live`
+- [ ] Verify `/health/ready`
+- [ ] Confirm CI is green
+- [ ] Confirm database backups and operational monitoring are configured by the hosting environment
 
----
+## Developer
 
-# 👨‍💻 Developer
+**Pankaj Kumar** — B.Tech, Computer Science Engineering
 
-## Pankaj Kumar
+Focus areas: Full-stack development, React, Node.js, Express, PostgreSQL, REST APIs, authentication, and application security.
 
-**B.Tech – Computer Science Engineering**
-
-### Skills
-
-- Full Stack Developer
-- React.js
-- Node.js
-- Express.js
-- PostgreSQL
-- REST APIs
-- JWT Authentication
-
----
-
-# 📄 License
+## License
 
 This project is developed for educational, learning, and portfolio purposes.
-
----
-
-# ⭐ Support
-
-If you found this project useful, consider giving it a ⭐ on GitHub.
-
----
-
-<p align="center">
-
-Made with ❤️ by <strong>Pankaj Kumar</strong>
-
-</p>
