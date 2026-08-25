@@ -1,16 +1,17 @@
 require("dotenv").config();
 
-const { validateEnv } = require("./config/env");
-const config = validateEnv();
 const app = require("./app");
 const pool = require("./config/db");
 const { gracefulShutdown } = require("./utils/shutdown");
 
-// Vercel executes Express as a serverless function. Do not start a
-// long-lived HTTP listener there; export the Express application instead.
+// Vercel executes Express as a serverless function. Never start a
+// long-lived listener there; export the Express application directly.
 if (process.env.VERCEL) {
     module.exports = app;
 } else {
+    const { validateEnv } = require("./config/env");
+    const config = validateEnv();
+
     const server = app.listen(config.port, "0.0.0.0", () => {
         console.log("=================================");
         console.log("PMSD Backend Started");
