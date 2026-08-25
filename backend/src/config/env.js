@@ -45,20 +45,26 @@ const validateEnv = () => {
         .map((origin) => origin.trim())
         .filter(Boolean);
 
-    if (nodeEnv === "production" && configuredOrigins.length === 0) {
-        throw new Error("CORS_ORIGINS or FRONTEND_URL is required in production.");
+    if (process.env.VERCEL_URL) {
+        configuredOrigins.push(`https://${process.env.VERCEL_URL}`);
     }
 
-    if (nodeEnv === "production" && configuredOrigins.some((origin) => origin === "*")) {
+    const uniqueOrigins = [...new Set(configuredOrigins)];
+
+    if (nodeEnv === "production" && uniqueOrigins.length === 0) {
+        throw new Error("CORS_ORIGINS or FRONTEND_URL is required in production outside Vercel.");
+    }
+
+    if (nodeEnv === "production" && uniqueOrigins.some((origin) => origin === "*")) {
         throw new Error("Wildcard CORS origin is not allowed in production.");
     }
 
     return {
         nodeEnv,
         port: Number(process.env.PORT || 5001),
-        frontendUrl: process.env.FRONTEND_URL || configuredOrigins[0] || "http://localhost:5173",
-        corsOrigins: configuredOrigins.length > 0
-            ? configuredOrigins
+        frontendUrl: process.env.FRONTEND_URL || uniqueOrigins[0] || "http://localhost:5173",
+        corsOrigins: uniqueOrigins.length > 0
+            ? uniqueOrigins
             : ["http://localhost:5173"]
     };
 };
