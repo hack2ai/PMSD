@@ -4,24 +4,6 @@ const cors = require("cors");
 const helmet = require("helmet");
 const requestContext = require("./middleware/requestContext");
 const requestLogger = require("./middleware/requestLogger");
-
-const authRoutes = require("./routes/authRoutes");
-const userRoutes = require("./routes/userRoutes");
-const courseRoutes = require("./routes/courseRoutes");
-const enrollmentRoutes = require("./routes/enrollmentRoutes");
-const paymentRoutes = require("./routes/paymentRoutes");
-const paymentWebhookRoutes = require("./routes/paymentWebhookRoutes");
-const certificateRoutes = require("./routes/certificateRoutes");
-const uploadRoutes = require("./routes/uploadRoutes");
-const dashboardRoutes = require("./routes/dashboardRoutes");
-const moduleRoutes = require("./routes/moduleRoutes");
-const lectureRoutes = require("./routes/lectureRoutes");
-const lectureSourceRoutes = require("./routes/lectureSourceRoutes");
-const sourceHealthRoutes = require("./routes/sourceHealthRoutes");
-const accessRoutes = require("./routes/accessRoutes");
-const lectureProgressRoutes = require("./routes/lectureProgressRoutes");
-const auditRoutes = require("./routes/auditRoutes");
-const adminDashboardRoutes = require("./routes/adminDashboardRoutes");
 const healthRoutes = require("./routes/healthRoutes");
 const { validateEnv } = require("./config/env");
 
@@ -45,6 +27,8 @@ const getVercelConfig = () => {
 
 const config = process.env.VERCEL ? getVercelConfig() : validateEnv();
 const app = express();
+let applicationRoutesRegistered = false;
+let applicationRouteError = null;
 
 app.disable("x-powered-by");
 app.use(requestContext);
@@ -62,16 +46,9 @@ app.use(cors({
     credentials: false
 }));
 
-// Public operational endpoints. Keep these outside authentication so
-// Vercel/orchestrator health probes can run without credentials.
+// Public operational endpoint. It deliberately loads before the application
+// routes and does not depend on the database or any feature module.
 app.use("/health", healthRoutes);
-
-// Payment-provider callbacks must capture the exact signed bytes before
-// the normal JSON parser runs.
-app.use("/api/payments/webhooks", paymentWebhookRoutes);
-
-app.use(express.json({ limit: "1mb" }));
-app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 app.use("/certificates", express.static(path.join(__dirname, "../certificates")));
@@ -84,32 +61,91 @@ app.get("/", (req, res) => {
     });
 });
 
-app.get("/api/lecture-access/health", (req, res) => {
-    res.status(200).json({
-        success: true,
-        service: "lecture-access",
-        status: "operational",
-        timestamp: new Date().toISOString(),
-        requestId: req.requestId
-    });
+const registerApplicationRoutes = () => {
+    if (applicationRoutesRegistered || applicationRouteError) {
+        return applicationRouteError;
+    }
+
+    try {
+        const authRoutes = require("./routes/authRoutes");
+        const userRoutes = require("./routes/userRoutes");
+        const courseRoutes = require("./routes/courseRoutes");
+        const enrollmentRoutes = require("./routes/enrollmentRoutes");
+        const paymentRoutes = require("./routes/paymentRoutes");
+        const paymentWebhookRoutes = require("./routes/paymentWebhookRoutes");
+        const certificateRoutes = require("./routes/certificateRoutes");
+        const uploadRoutes = require("./routes/uploadRoutes");
+        const dashboardRoutes = require("./routes/dashboardRoutes");
+        const moduleRoutes = require("./routes/moduleRoutes");
+        const lectureRoutes = require("./routes/lectureRoutes");
+        const lectureSourceRoutes = require("./routes/lectureSourceRoutes");
+        const sourceHealthRoutes = require("./routes/sourceHealthRoutes");
+        const accessRoutes = require("./routes/accessRoutes");
+        const lectureProgressRoutes = require("./routes/lectureProgressRoutes");
+        const auditRoutes = require("./routes/auditRoutes");
+        const adminDashboardRoutes = require("./routes/adminDashboardRoutes");
+
+        // Payment-provider callbacks must capture the exact signed bytes before
+        // the normal JSON parser runs.
+        app.use("/api/payments/webhooks", paymentWebhookRoutes);
+
+        app.use("/api/auth", authRoutes);
+        app.use("/api/users", userRoutes);
+        app.use("/api/courses", courseRoutes);
+        app.use("/api/enrollments", enrollmentRoutes);
+        app.use("/api/payments", paymentRoutes);
+        app.use("/api/certificates", certificateRoutes);
+        app.use("/api/uploads", uploadRoutes);
+        app.use("/api/dashboard", dashboardRoutes);
+        app.use("/api/admin", adminDashboardRoutes);
+        app.use("/api/modules", moduleRoutes);
+        app.use("/api/lectures", lectureRoutes);
+        app.use("/api/lecture-sources", lectureSourceRoutes);
+        app.use("/api/source-health", sourceHealthRoutes);
+        app.use("/api/access", accessRoutes);
+        app.use("/api/progress", lectureProgressRoutes);
+        app.use("/api/audit", auditRoutes);
+
+        app.use("/api/lecture-access/health", (req, res) => {
+            res.status(200).json({
+                success: true,
+                service: "lecture-access",
+                status: "operational",
+                timestamp: new Date().toISOString(),
+                requestId: req.requestId
+            });
+        });
+
+        applicationRoutesRegistered = true;
+        return null;
+    } catch (error) {
+        applicationRouteError = error;
+        console.error(JSON.stringify({
+            level: "error",
+            event: "application_routes_registration_failed",
+            error: error.message,
+            stack: error.stack
+        }));
+        return error;
+    }
+};
+
+// Feature routes load only when an API request actually arrives. This keeps
+// /health/live and the root endpoint isolated from unrelated route failures.
+app.use("/api", (req, res, next) => {
+    const error = registerApplicationRoutes();
+    if (error) {
+        return res.status(500).json({
+            success: false,
+            message: "Application routes failed to initialize.",
+            requestId: req.requestId
+        });
+    }
+    return next();
 });
 
-app.use("/api/auth", authRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/courses", courseRoutes);
-app.use("/api/enrollments", enrollmentRoutes);
-app.use("/api/payments", paymentRoutes);
-app.use("/api/certificates", certificateRoutes);
-app.use("/api/uploads", uploadRoutes);
-app.use("/api/dashboard", dashboardRoutes);
-app.use("/api/admin", adminDashboardRoutes);
-app.use("/api/modules", moduleRoutes);
-app.use("/api/lectures", lectureRoutes);
-app.use("/api/lecture-sources", lectureSourceRoutes);
-app.use("/api/source-health", sourceHealthRoutes);
-app.use("/api/access", accessRoutes);
-app.use("/api/progress", lectureProgressRoutes);
-app.use("/api/audit", auditRoutes);
+app.use(express.json({ limit: "1mb" }));
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 
 app.use((req, res) => {
     res.status(404).json({
