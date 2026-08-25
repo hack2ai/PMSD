@@ -15,6 +15,38 @@ app.get("/health/live", (req, res) => {
     });
 });
 
+app.get("/health/ready", async (req, res) => {
+    try {
+        const pool = require("./config/db");
+        await pool.query("SELECT 1");
+
+        return res.status(200).json({
+            success: true,
+            status: "ready",
+            checks: {
+                database: "ok"
+            },
+            requestId: req.headers["x-request-id"] || null
+        });
+    } catch (error) {
+        console.error(JSON.stringify({
+            level: "error",
+            event: "readiness_check_failed",
+            dependency: "database",
+            error: error.message
+        }));
+
+        return res.status(503).json({
+            success: false,
+            status: "not_ready",
+            checks: {
+                database: "unavailable"
+            },
+            requestId: req.headers["x-request-id"] || null
+        });
+    }
+});
+
 app.get("/", (req, res) => {
     res.status(200).json({
         success: true,
