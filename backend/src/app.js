@@ -25,7 +25,25 @@ const adminDashboardRoutes = require("./routes/adminDashboardRoutes");
 const healthRoutes = require("./routes/healthRoutes");
 const { validateEnv } = require("./config/env");
 
-const config = validateEnv();
+const getVercelConfig = () => {
+    const configuredOrigins = (process.env.CORS_ORIGINS || process.env.FRONTEND_URL || "")
+        .split(",")
+        .map((origin) => origin.trim())
+        .filter(Boolean);
+
+    if (process.env.VERCEL_URL) {
+        configuredOrigins.push(`https://${process.env.VERCEL_URL}`);
+    }
+
+    return {
+        nodeEnv: process.env.NODE_ENV || "production",
+        port: Number(process.env.PORT || 3000),
+        frontendUrl: process.env.FRONTEND_URL || configuredOrigins[0] || "http://localhost:5173",
+        corsOrigins: [...new Set(configuredOrigins)]
+    };
+};
+
+const config = process.env.VERCEL ? getVercelConfig() : validateEnv();
 const app = express();
 
 app.disable("x-powered-by");
@@ -34,7 +52,7 @@ app.use(requestLogger);
 app.use(helmet());
 app.use(cors({
     origin(origin, callback) {
-        if (!origin || config.corsOrigins.includes(origin)) {
+        if (!origin || config.corsOrigins.length === 0 || config.corsOrigins.includes(origin)) {
             return callback(null, true);
         }
         return callback(new Error("CORS origin not allowed."));
@@ -45,7 +63,7 @@ app.use(cors({
 }));
 
 // Public operational endpoints. Keep these outside authentication so
-// container/orchestrator health probes can run without credentials.
+// Vercel/orchestrator health probes can run without credentials.
 app.use("/health", healthRoutes);
 
 // Payment-provider callbacks must capture the exact signed bytes before
