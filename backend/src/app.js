@@ -27,6 +27,7 @@ const getVercelConfig = () => {
 
 const config = process.env.VERCEL ? getVercelConfig() : validateEnv();
 const app = express();
+const apiRouter = express.Router();
 let applicationRoutesRegistered = false;
 let applicationRouteError = null;
 
@@ -87,26 +88,26 @@ const registerApplicationRoutes = () => {
 
         // Payment-provider callbacks must capture the exact signed bytes before
         // the normal JSON parser runs.
-        app.use("/api/payments/webhooks", paymentWebhookRoutes);
+        apiRouter.use("/payments/webhooks", paymentWebhookRoutes);
 
-        app.use("/api/auth", authRoutes);
-        app.use("/api/users", userRoutes);
-        app.use("/api/courses", courseRoutes);
-        app.use("/api/enrollments", enrollmentRoutes);
-        app.use("/api/payments", paymentRoutes);
-        app.use("/api/certificates", certificateRoutes);
-        app.use("/api/uploads", uploadRoutes);
-        app.use("/api/dashboard", dashboardRoutes);
-        app.use("/api/admin", adminDashboardRoutes);
-        app.use("/api/modules", moduleRoutes);
-        app.use("/api/lectures", lectureRoutes);
-        app.use("/api/lecture-sources", lectureSourceRoutes);
-        app.use("/api/source-health", sourceHealthRoutes);
-        app.use("/api/access", accessRoutes);
-        app.use("/api/progress", lectureProgressRoutes);
-        app.use("/api/audit", auditRoutes);
+        apiRouter.use("/auth", authRoutes);
+        apiRouter.use("/users", userRoutes);
+        apiRouter.use("/courses", courseRoutes);
+        apiRouter.use("/enrollments", enrollmentRoutes);
+        apiRouter.use("/payments", paymentRoutes);
+        apiRouter.use("/certificates", certificateRoutes);
+        apiRouter.use("/uploads", uploadRoutes);
+        apiRouter.use("/dashboard", dashboardRoutes);
+        apiRouter.use("/admin", adminDashboardRoutes);
+        apiRouter.use("/modules", moduleRoutes);
+        apiRouter.use("/lectures", lectureRoutes);
+        apiRouter.use("/lecture-sources", lectureSourceRoutes);
+        apiRouter.use("/source-health", sourceHealthRoutes);
+        apiRouter.use("/access", accessRoutes);
+        apiRouter.use("/progress", lectureProgressRoutes);
+        apiRouter.use("/audit", auditRoutes);
 
-        app.use("/api/lecture-access/health", (req, res) => {
+        apiRouter.get("/lecture-access/health", (req, res) => {
             res.status(200).json({
                 success: true,
                 service: "lecture-access",
@@ -130,8 +131,9 @@ const registerApplicationRoutes = () => {
     }
 };
 
-// Feature routes load only when an API request actually arrives. This keeps
-// /health/live and the root endpoint isolated from unrelated route failures.
+// The API router is mounted once. Its first request initializes feature routes
+// inside the router, so those routes are available to the same request without
+// changing the global Express middleware order.
 app.use("/api", (req, res, next) => {
     const error = registerApplicationRoutes();
     if (error) {
@@ -141,7 +143,7 @@ app.use("/api", (req, res, next) => {
             requestId: req.requestId
         });
     }
-    return next();
+    return apiRouter(req, res, next);
 });
 
 app.use(express.json({ limit: "1mb" }));
