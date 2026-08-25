@@ -5,9 +5,8 @@ const helmet = require("helmet");
 const requestContext = require("./middleware/requestContext");
 const requestLogger = require("./middleware/requestLogger");
 const healthRoutes = require("./routes/healthRoutes");
-const { validateEnv } = require("./config/env");
 
-const getVercelConfig = () => {
+const getRuntimeConfig = () => {
     const configuredOrigins = (process.env.CORS_ORIGINS || process.env.FRONTEND_URL || "")
         .split(",")
         .map((origin) => origin.trim())
@@ -25,7 +24,10 @@ const getVercelConfig = () => {
     };
 };
 
-const config = process.env.VERCEL ? getVercelConfig() : validateEnv();
+// src/app.js is also the direct Vercel function entrypoint. Never perform
+// strict production validation here because a health request must be able to
+// boot independently. Traditional deployments validate in server.js.
+const config = getRuntimeConfig();
 const app = express();
 const apiRouter = express.Router();
 let applicationRoutesRegistered = false;
@@ -47,8 +49,8 @@ app.use(cors({
     credentials: false
 }));
 
-// Public operational endpoint. It deliberately loads before the application
-// routes and does not depend on the database or any feature module.
+// Public operational endpoint. It deliberately loads before application
+// routes and does not depend on the database or feature modules.
 app.use("/health", healthRoutes);
 
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
@@ -86,10 +88,7 @@ const registerApplicationRoutes = () => {
         const auditRoutes = require("./routes/auditRoutes");
         const adminDashboardRoutes = require("./routes/adminDashboardRoutes");
 
-        // Payment-provider callbacks must capture the exact signed bytes before
-        // the normal JSON parser runs.
         apiRouter.use("/payments/webhooks", paymentWebhookRoutes);
-
         apiRouter.use("/auth", authRoutes);
         apiRouter.use("/users", userRoutes);
         apiRouter.use("/courses", courseRoutes);
@@ -131,9 +130,6 @@ const registerApplicationRoutes = () => {
     }
 };
 
-// The API router is mounted once. Its first request initializes feature routes
-// inside the router, so those routes are available to the same request without
-// changing the global Express middleware order.
 app.use("/api", (req, res, next) => {
     const error = registerApplicationRoutes();
     if (error) {
