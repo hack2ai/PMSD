@@ -45,7 +45,35 @@ function SecurityAuditContent() {
     };
 
     useEffect(() => {
-        loadLogs();
+        let cancelled = false;
+
+        const run = async () => {
+            try {
+                const result = await getAuditLogs(initialFilters);
+                if (cancelled) return;
+                setData({
+                    logs: result.logs || [],
+                    total: result.total || 0,
+                    limit: result.limit || 25,
+                    offset: result.offset || 0
+                });
+                setError("");
+            } catch (err) {
+                if (!cancelled) {
+                    setError(err.response?.data?.message || "Unable to load security audit logs.");
+                }
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        run();
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     const updateFilter = (key, value) => {
