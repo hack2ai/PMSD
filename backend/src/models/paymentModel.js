@@ -20,10 +20,7 @@ const createPayment = async (
 };
 
 const getPaymentById = async (id) => {
-    const result = await pool.query(
-        `SELECT * FROM payments WHERE id = $1`,
-        [id]
-    );
+    const result = await pool.query(`SELECT * FROM payments WHERE id = $1`, [id]);
     return result.rows[0];
 };
 
@@ -50,10 +47,6 @@ const getAllPayments = async () => {
     return result.rows;
 };
 
-// Allowed lifecycle:
-// Pending -> Paid | Failed | Cancelled
-// Paid    -> Refunded
-// Failed/Cancelled/Refunded are terminal.
 const updatePaymentStatus = async (id, paymentStatus) => {
     const result = await pool.query(
         `UPDATE payments
@@ -71,11 +64,25 @@ const updatePaymentStatus = async (id, paymentStatus) => {
     return result.rows[0];
 };
 
-const deletePayment = async (id) => {
+const updatePaymentStatusByTransactionId = async (transactionId, paymentStatus) => {
     const result = await pool.query(
-        `DELETE FROM payments WHERE id = $1 RETURNING *`,
-        [id]
+        `UPDATE payments
+         SET payment_status = $1
+         WHERE transaction_id = $2
+           AND (
+                (payment_status = 'Pending' AND $1 IN ('Paid', 'Failed', 'Cancelled'))
+                OR
+                (payment_status = 'Paid' AND $1 = 'Refunded')
+           )
+         RETURNING *`,
+        [paymentStatus, transactionId]
     );
+
+    return result.rows[0];
+};
+
+const deletePayment = async (id) => {
+    const result = await pool.query(`DELETE FROM payments WHERE id = $1 RETURNING *`, [id]);
     return result.rows[0];
 };
 
@@ -85,5 +92,6 @@ module.exports = {
     getUserPayments,
     getAllPayments,
     updatePaymentStatus,
+    updatePaymentStatusByTransactionId,
     deletePayment
 };
