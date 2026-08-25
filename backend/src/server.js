@@ -1,14 +1,15 @@
 require("dotenv").config();
 
 const app = require("./app");
-const pool = require("./config/db");
-const { gracefulShutdown } = require("./utils/shutdown");
 
-// Vercel executes Express as a serverless function. Never start a
-// long-lived listener there; export the Express application directly.
+// Vercel executes Express as a serverless function. Keep the Vercel startup
+// path completely independent from PostgreSQL. The pool is loaded only for
+// the traditional long-running local/server deployment.
 if (process.env.VERCEL) {
     module.exports = app;
 } else {
+    const pool = require("./config/db");
+    const { gracefulShutdown } = require("./utils/shutdown");
     const { validateEnv } = require("./config/env");
     const config = validateEnv();
 
