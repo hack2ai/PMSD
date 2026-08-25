@@ -1,11 +1,14 @@
-const requiredProductionVars = [
-    "DB_HOST",
-    "DB_PORT",
-    "DB_USER",
-    "DB_PASSWORD",
-    "DB_NAME",
-    "JWT_SECRET"
-];
+const requiredProductionVars = ["JWT_SECRET"];
+
+const hasDatabaseConfiguration = () => Boolean(
+    process.env.DATABASE_URL || (
+        process.env.DB_HOST &&
+        process.env.DB_PORT &&
+        process.env.DB_USER &&
+        process.env.DB_PASSWORD &&
+        process.env.DB_NAME
+    )
+);
 
 const isValidPort = (value) => {
     if (value === undefined || value === null || value === "") return false;
@@ -16,6 +19,10 @@ const isValidPort = (value) => {
 const validateEnv = () => {
     const nodeEnv = process.env.NODE_ENV || "development";
     const missing = requiredProductionVars.filter((name) => !process.env[name]);
+
+    if (nodeEnv === "production" && !hasDatabaseConfiguration()) {
+        missing.push("DATABASE_URL or DB_HOST/DB_PORT/DB_USER/DB_PASSWORD/DB_NAME");
+    }
 
     if (missing.length > 0 && nodeEnv === "production") {
         throw new Error(`Missing required production environment variables: ${missing.join(", ")}`);
