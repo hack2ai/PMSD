@@ -1,5 +1,4 @@
 const express = require("express");
-const pool = require("../config/db");
 const { checkDatabase } = require("../utils/healthCheck");
 
 const router = express.Router();
@@ -14,6 +13,9 @@ router.get("/live", (req, res) => {
 
 router.get("/ready", async (req, res) => {
     try {
+        // Load the database pool only for readiness checks. A live probe
+        // must not crash simply because the database configuration is bad.
+        const pool = require("../config/db");
         const checks = await checkDatabase(pool);
 
         return res.status(200).json({
