@@ -8,16 +8,23 @@ const {
     isNonEmptyMigration
 } = require("./migrationValidation");
 
-const pool = new Pool({
-    host: process.env.DB_HOST,
-    port: process.env.DB_PORT,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    ssl: process.env.DB_SSL === "true"
-        ? { rejectUnauthorized: false }
-        : false
-});
+const pool = new Pool(process.env.DATABASE_URL
+    ? {
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.DB_SSL === "true"
+            ? { rejectUnauthorized: false }
+            : undefined
+    }
+    : {
+        host: process.env.DB_HOST,
+        port: process.env.DB_PORT,
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+        ssl: process.env.DB_SSL === "true"
+            ? { rejectUnauthorized: false }
+            : false
+    });
 
 const MIGRATIONS_DIR = path.join(__dirname, "migrations");
 const MIGRATION_LOCK_ID = 82419631;
