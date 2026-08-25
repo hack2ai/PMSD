@@ -48,7 +48,30 @@ function SourceManagement() {
     };
 
     useEffect(() => {
-        loadSources();
+        let cancelled = false;
+
+        const run = async () => {
+            try {
+                const data = await getLectureSources(lectureId);
+                if (cancelled) return;
+                setSources(data.sources || []);
+                setError("");
+            } catch (err) {
+                if (!cancelled) {
+                    setError(err.response?.data?.message || "Unable to load lecture sources.");
+                }
+            } finally {
+                if (!cancelled) {
+                    setLoading(false);
+                }
+            }
+        };
+
+        run();
+
+        return () => {
+            cancelled = true;
+        };
     }, [lectureId]);
 
     const handleSubmit = async (event) => {
