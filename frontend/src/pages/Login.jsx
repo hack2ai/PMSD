@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FiArrowRight, FiEye, FiEyeOff, FiLock, FiMail, FiShield } from "react-icons/fi";
 import { login, saveSession } from "../services/authService";
 import "./Login.css";
@@ -104,6 +104,9 @@ function Login() {
                         </button>
                     </form>
 
+                    <p className="login-footer">
+                        Don't have an account? <Link to="/register">Create an account</Link>
+                    </p>
                     <p className="login-footer">Your account role determines the workspace you can access.</p>
                 </div>
             </section>
