@@ -18,6 +18,7 @@ app.get("/health/live", (req, res) => {
 app.get("/health/ready", async (req, res) => {
     const hasDatabaseUrl = Boolean(
         process.env.DATABASE_URL ||
+        process.env.NEON_DATABASE_URL ||
         process.env.POSTGRES_URL ||
         process.env.POSTGRES_PRISMA_URL ||
         process.env.POSTGRES_URL_NON_POOLING ||
