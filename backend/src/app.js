@@ -16,6 +16,20 @@ app.get("/health/live", (req, res) => {
 });
 
 app.get("/health/ready", async (req, res) => {
+    const hasDatabaseUrl = Boolean(
+        process.env.DATABASE_URL ||
+        process.env.POSTGRES_URL ||
+        process.env.POSTGRES_PRISMA_URL ||
+        process.env.POSTGRES_URL_NON_POOLING ||
+        process.env.DATABASE_URL_UNPOOLED
+    );
+    const hasDiscreteDbConfig = Boolean(
+        process.env.DB_HOST &&
+        process.env.DB_USER &&
+        process.env.DB_PASSWORD &&
+        process.env.DB_NAME
+    );
+
     try {
         const pool = require("./config/db");
         await pool.query("SELECT 1");
@@ -29,11 +43,13 @@ app.get("/health/ready", async (req, res) => {
             requestId: req.headers["x-request-id"] || null
         });
     } catch (error) {
+        const errorCode = error?.code || error?.name || "UNKNOWN_DATABASE_ERROR";
         console.error(JSON.stringify({
             level: "error",
             event: "readiness_check_failed",
             dependency: "database",
-            error: error.message
+            errorCode,
+            message: error.message
         }));
 
         return res.status(503).json({
@@ -41,6 +57,11 @@ app.get("/health/ready", async (req, res) => {
             status: "not_ready",
             checks: {
                 database: "unavailable"
+            },
+            diagnostics: {
+                databaseUrlConfigured: hasDatabaseUrl,
+                discreteDbConfigConfigured: hasDiscreteDbConfig,
+                errorCode
             },
             requestId: req.headers["x-request-id"] || null
         });
