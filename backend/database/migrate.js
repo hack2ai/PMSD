@@ -8,12 +8,37 @@ const {
     isNonEmptyMigration
 } = require("./migrationValidation");
 
-const pool = new Pool(process.env.DATABASE_URL
+const databaseUrl =
+    process.env.DATABASE_URL ||
+    process.env.NEON_DATABASE_URL ||
+    process.env.POSTGRES_URL ||
+    process.env.POSTGRES_PRISMA_URL ||
+    process.env.POSTGRES_URL_NON_POOLING ||
+    process.env.DATABASE_URL_UNPOOLED;
+
+const isHostedDatabaseUrl = (value) => {
+    if (!value) return false;
+    try {
+        const hostname = new URL(value).hostname;
+        return !["localhost", "127.0.0.1", "::1"].includes(hostname);
+    } catch {
+        return false;
+    }
+};
+
+const hostedSsl = isHostedDatabaseUrl(databaseUrl);
+
+const pool = new Pool(databaseUrl
     ? {
-        connectionString: process.env.DATABASE_URL,
-        ssl: process.env.DB_SSL === "true"
-            ? { rejectUnauthorized: false }
-            : undefined
+        connectionString: databaseUrl,
+        max: 5,
+        min: 0,
+        connectionTimeoutMillis: 10000,
+        ssl: process.env.DB_SSL === "false"
+            ? undefined
+            : (process.env.DB_SSL === "true" || hostedSsl
+                ? { rejectUnauthorized: false }
+                : undefined)
     }
     : {
         host: process.env.DB_HOST,
