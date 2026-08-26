@@ -1,9 +1,11 @@
 const { Pool } = require("pg");
 require("dotenv").config();
 
+// Prefer Vercel/Neon's hosted connection in production. Keep DATABASE_URL
+// as the local/fallback option so existing local development still works.
 const databaseUrl =
-    process.env.DATABASE_URL ||
     process.env.NEON_DATABASE_URL ||
+    process.env.DATABASE_URL ||
     process.env.POSTGRES_URL ||
     process.env.POSTGRES_PRISMA_URL ||
     process.env.POSTGRES_URL_NON_POOLING ||
