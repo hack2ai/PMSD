@@ -128,8 +128,6 @@ const registerApplicationRoutes = () => {
         apiRouter.use("/payments/webhooks", paymentWebhookRoutes);
         apiRouter.use(expressJson);
         apiRouter.use(express.urlencoded({ extended: true, limit: "1mb" }));
-        apiRouter.use("/uploads", express.static(path.join(__dirname, "../uploads")));
-        apiRouter.use("/certificates", express.static(path.join(__dirname, "../certificates")));
 
         apiRouter.use("/auth", authRoutes);
         apiRouter.use("/users", userRoutes);
