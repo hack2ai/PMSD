@@ -1,11 +1,11 @@
-const rateLimit = require("express-rate-limit");
+const { rateLimit, ipKeyGenerator } = require("express-rate-limit");
 
 const paymentCreateRateLimit = rateLimit({
     windowMs: 10 * 60 * 1000,
     limit: 10,
     standardHeaders: "draft-7",
     legacyHeaders: false,
-    keyGenerator: (req) => String(req.user?.id || req.ip),
+    keyGenerator: (req) => (req.user?.id ? String(req.user.id) : ipKeyGenerator(req.ip)),
     handler: (req, res) => {
         res.status(429).json({
             success: false,

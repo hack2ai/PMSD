@@ -1,8 +1,11 @@
+const { ipKeyGenerator } = require("express-rate-limit");
+
 const WINDOW_MS = 60 * 1000;
 const LIMIT = 15;
 const buckets = new Map();
 
-const getKey = (req) => String(req.user?.id || req.ip || "anonymous");
+const getKey = (req) =>
+    req.user?.id ? String(req.user.id) : ipKeyGenerator(req.ip) || "anonymous";
 
 const cleanup = (now) => {
     if (buckets.size < 5000) return;
