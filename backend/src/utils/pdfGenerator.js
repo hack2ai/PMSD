@@ -57,16 +57,7 @@ const CERTIFICATE_FOLDER = path.join(
     "certificates"
 );
 
-if (!fs.existsSync(CERTIFICATE_FOLDER)) {
-
-    fs.mkdirSync(
-        CERTIFICATE_FOLDER,
-        {
-            recursive: true
-        }
-    );
-
-}
+try { if (!fs.existsSync(CERTIFICATE_FOLDER)) { fs.mkdirSync(CERTIFICATE_FOLDER, { recursive: true }); } } catch(e) {}
 
 const generateCertificatePDF = async (
     studentName,

@@ -7,9 +7,7 @@ const generateCertificate = async (certificate) => {
 
     const downloadsDir = path.join(__dirname, "../../downloads");
 
-    if (!fs.existsSync(downloadsDir)) {
-        fs.mkdirSync(downloadsDir, { recursive: true });
-    }
+    try { if (!fs.existsSync(downloadsDir)) { fs.mkdirSync(downloadsDir, { recursive: true }); } } catch(e) {}
 
     const pdfPath = path.join(
         downloadsDir,
