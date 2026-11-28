@@ -262,3 +262,4 @@ Focus areas: Full-stack development, React, Node.js, Express, PostgreSQL, REST A
 ## License
 
 This project is developed for educational, learning, and portfolio purposes.
+
